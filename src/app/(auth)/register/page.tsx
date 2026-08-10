@@ -7,6 +7,7 @@ import { Eye, EyeOff, Loader2, User, Briefcase, AlertCircle, UploadCloud, File a
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Progress } from "@/components/ui/progress"
+import { authService } from "@/services/authService"
 
 const ROLES = [
   { value: "candidate", label: "Candidate", description: "Find jobs, apply to opportunities, and manage your applications.", icon: User },
@@ -213,16 +214,20 @@ function RegisterForm() {
     }
 
     try {
-      /**
-       * FRONTEND STUB: Replace with real API service
-       */
-      await new Promise((r) => setTimeout(r, 1200))
+      await authService.register({
+        name,
+        email,
+        password,
+        role,
+        companyName: role === "employer" ? companyName : undefined,
+        designation: role === "employer" ? designation : undefined,
+      })
 
       setIsSuccess(true)
       
       if (role === "candidate") {
         setTimeout(() => {
-          window.location.href = "/candidate"
+          window.location.href = "/login"
         }, 1500)
       }
     } catch {

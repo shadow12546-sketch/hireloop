@@ -9,7 +9,7 @@ export const authService = {
       await delay(800)
       return { token: "mock_token", user: mockUsers[0] }
     }
-    return apiClient.post("/auth/login", credentials)
+    return apiClient.post<any>("/auth/login", credentials)
   },
   
   register: async (data: any) => {
@@ -17,7 +17,7 @@ export const authService = {
       await delay(800)
       return { token: "mock_token", user: { ...mockUsers[0], name: data.name, email: data.email } }
     }
-    return apiClient.post("/auth/register", data)
+    return apiClient.post<any>("/auth/register", data)
   },
 
   getUsers: async () => {

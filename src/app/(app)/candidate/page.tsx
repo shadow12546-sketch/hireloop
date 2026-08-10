@@ -24,8 +24,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 
-import { AIAnalysisCard } from "@/components/candidate/AIAnalysisCard"
-
 function KpiSkeleton() {
   return (
     <Card>
@@ -90,7 +88,7 @@ export default function CandidateDashboard() {
   const nextActions = data ? [
     ...data.offers.map((o: any) => ({ type: "Offer", title: `Offer from ${o.company}`, desc: "Respond to job offer", date: o.date, priority: "high", action: "Review Offer", icon: Award, color: "text-green-500", bg: "bg-green-500/10" })),
     ...data.interviews.map((i: any) => ({ type: "Interview", title: `${i.jobTitle} at ${i.company}`, desc: `Scheduled for ${i.time}`, date: i.date, priority: "high", action: "Join Meeting", icon: Video, color: "text-blue-500", bg: "bg-blue-500/10", link: i.link })),
-    ...data.assessments.map((a: any) => ({ type: "Assessment", title: `${a.type} for ${a.company}`, desc: `Due by ${new Date(a.dueDate).toLocaleDateString()}`, priority: "medium", action: "Start Assessment", icon: Clock, color: "text-amber-500", bg: "bg-amber-500/10" })),
+    ...data.assessments.map((a: any) => ({ type: "Assessment", title: a.title || "Assessment", desc: `Due by ${new Date(a.deadline).toLocaleDateString()}`, priority: "medium", action: "Start Assessment", icon: Clock, color: "text-amber-500", bg: "bg-amber-500/10" })),
   ] : []
 
   return (

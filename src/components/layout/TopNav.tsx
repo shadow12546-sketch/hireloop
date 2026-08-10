@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useTheme } from "next-themes"
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 
 interface TopNavProps {
   onMenuOpen?: () => void
@@ -13,6 +14,10 @@ interface TopNavProps {
 
 export function TopNav({ onMenuOpen }: TopNavProps) {
   const { setTheme, theme } = useTheme()
+  const pathname = usePathname()
+  const notificationsHref = pathname.startsWith("/candidate")
+    ? "/candidate/notifications"
+    : "/recruiter/notifications"
 
   return (
     <div className="flex h-16 items-center gap-3 px-4 sm:px-6 border-b bg-background/95 backdrop-blur-sm shrink-0 sticky top-0 z-30">
@@ -54,10 +59,12 @@ export function TopNav({ onMenuOpen }: TopNavProps) {
         </Button>
 
         {/* Notifications */}
-        <Button variant="ghost" size="icon" className="rounded-xl relative" aria-label="Notifications">
-          <Bell className="h-4 w-4" />
-          <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-primary" />
-        </Button>
+        <Link href={notificationsHref}>
+          <Button variant="ghost" size="icon" className="rounded-xl relative" aria-label="Notifications">
+            <Bell className="h-4 w-4" />
+            <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-primary" />
+          </Button>
+        </Link>
 
         {/* Home */}
         <Link href="/" className="ml-1">

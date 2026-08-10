@@ -6,8 +6,10 @@ import { useRouter } from "next/navigation"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { authService } from "@/services/authService"
 
 export default function LoginPage() {
+  const [role, setRole] = useState<"candidate" | "employer">("candidate")
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
@@ -15,14 +17,68 @@ export default function LoginPage() {
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
+    
+    const form = e.currentTarget
+    const email = form.email.value
+    const password = form.password.value
+
     setError("")
     setLoading(true)
     try {
-      await new Promise((r) => setTimeout(r, 900))
-      // TODO: Replace with real authService.login() call when Muskan's backend is ready
-      router.push("/recruiter")
-    } catch {
+      const response = await authService.login({ email, password })
+      const isActualEmployer = response.user?.role === "Recruiter" || response.user?.role === "Employer" || email.includes("@company.com");
+      
+      if (role === "employer" && !isActualEmployer) {
+        setError("These credentials belong to a Candidate account. Please select Candidate to continue.")
+        setLoading(false)
+        return
+      }
+
+      if (role === "candidate" && isActualEmployer) {
+        setError("These credentials belong to an Employer account. Please select Employer to continue.")
+        setLoading(false)
+        return
+      }
+
+      if (isActualEmployer) {
+        router.push("/recruiter")
+      } else {
+        router.push("/candidate")
+      }
+    } catch (err) {
       setError("Invalid credentials. Please try again.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleGoogleLogin() {
+    setError("")
+    setLoading(true)
+    try {
+      // Mocking Google login with authService for now
+      const response = await authService.login({ email: "google@mock.com", password: "mock" })
+      const isActualEmployer = response.user?.role === "Recruiter" || response.user?.role === "Employer";
+
+      if (role === "employer" && !isActualEmployer) {
+        setError("These credentials belong to a Candidate account. Please select Candidate to continue.")
+        setLoading(false)
+        return
+      }
+
+      if (role === "candidate" && isActualEmployer) {
+        setError("These credentials belong to an Employer account. Please select Employer to continue.")
+        setLoading(false)
+        return
+      }
+
+      if (isActualEmployer) {
+        router.push("/recruiter")
+      } else {
+        router.push("/candidate")
+      }
+    } catch {
+      setError("Google login failed. Please try again.")
     } finally {
       setLoading(false)
     }
@@ -44,6 +100,34 @@ export default function LoginPage() {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+        <div className="space-y-3">
+          <label className="text-sm font-semibold">Sign in as</label>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => setRole("candidate")}
+              className={`h-11 rounded-xl text-sm font-bold border transition-colors ${
+                role === "candidate"
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-input bg-background text-muted-foreground hover:bg-accent"
+              }`}
+            >
+              Candidate
+            </button>
+            <button
+              type="button"
+              onClick={() => setRole("employer")}
+              className={`h-11 rounded-xl text-sm font-bold border transition-colors ${
+                role === "employer"
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-input bg-background text-muted-foreground hover:bg-accent"
+              }`}
+            >
+              Employer
+            </button>
+          </div>
+        </div>
+
         <div className="space-y-1.5">
           <label htmlFor="email" className="text-sm font-semibold">Email address</label>
           <Input id="email" name="email" type="email" placeholder="you@company.com" autoComplete="email" required className="h-11 rounded-xl" />
@@ -73,7 +157,7 @@ export default function LoginPage() {
         <div className="relative flex justify-center text-xs uppercase"><span className="bg-background px-2 text-muted-foreground">or continue with</span></div>
       </div>
 
-      <Button variant="outline" className="w-full h-11 rounded-xl gap-2 font-semibold" type="button">
+      <Button variant="outline" className="w-full h-11 rounded-xl gap-2 font-semibold" type="button" onClick={handleGoogleLogin} disabled={loading}>
         <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
           <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
           <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />

@@ -21,6 +21,7 @@ import {
   Kanban,
   UserCircle,
   Gift,
+  LogOut,
 } from "lucide-react"
 
 const candidateNavGroups = [
@@ -176,8 +177,14 @@ export function Sidebar({ className, ...props }: SidebarProps) {
             <p className="text-sm font-semibold truncate">Sachin Verma</p>
             <p className="text-xs text-muted-foreground truncate">{userRole}</p>
           </div>
-          <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
         </div>
+        <button
+          onClick={() => { window.location.href = "/login" }}
+          className="mt-1 w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all"
+        >
+          <LogOut className="h-4 w-4 shrink-0" />
+          <span>Log out</span>
+        </button>
       </div>
     </div>
   )

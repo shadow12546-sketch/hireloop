@@ -2,6 +2,7 @@
 import { interviewService } from "@/services/interviewService"
 
 import { useState, useEffect } from "react"
+import Link from "next/link"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Calendar, Clock, Video, Building2, User, HelpCircle } from "lucide-react"
