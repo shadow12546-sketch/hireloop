@@ -93,13 +93,36 @@ export default function ApplicationTracking({ params }: { params: Promise<{ id: 
             </CardHeader>
             <CardContent>
               {app.status === "Interview" ? (
-                <div className="p-4 border rounded-xl bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400">
-                  <h4 className="font-semibold mb-2">Action Required</h4>
+                <div className="p-4 border rounded-xl bg-indigo-500/10 border-indigo-500/20 text-indigo-700 dark:text-indigo-400">
+                  <h4 className="font-semibold mb-2">Interview Scheduled</h4>
                   <p className="text-sm mb-4">You have an upcoming interview scheduled. Please review the details and confirm your attendance.</p>
                   <Button size="sm" render={<Link href="/candidate/interviews" />}>View Interview Details</Button>
                 </div>
-              ) : app.status === "Screening" ? (
-                <div className="p-4 border rounded-xl bg-blue-500/10 border-blue-500/20 text-blue-600 dark:text-blue-400">
+              ) : app.status === "Assessment" ? (
+                <div className="p-4 border rounded-xl bg-amber-500/10 border-amber-500/20 text-amber-700 dark:text-amber-400">
+                  <h4 className="font-semibold mb-2">Assessment Assigned</h4>
+                  <p className="text-sm mb-4">You have a pending skills assessment. Complete it before the deadline to proceed to the next stage.</p>
+                  <Button size="sm" render={<Link href="/candidate/assessments" />}>Go to Assessments</Button>
+                </div>
+              ) : app.status === "Offer" ? (
+                <div className="p-4 border rounded-xl bg-green-500/10 border-green-500/20 text-green-700 dark:text-green-400">
+                  <h4 className="font-semibold mb-2">Offer Received!</h4>
+                  <p className="text-sm mb-4">Congratulations! You have received a job offer. Please review and respond to the offer letter.</p>
+                  <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white" render={<Link href="/candidate/offers" />}>Review Offer</Button>
+                </div>
+              ) : app.status === "Hired" ? (
+                <div className="p-4 border rounded-xl bg-emerald-500/10 border-emerald-500/20 text-emerald-700 dark:text-emerald-400">
+                  <h4 className="font-semibold mb-2">Welcome Aboard!</h4>
+                  <p className="text-sm mb-4">You have been hired for this role. Look out for an email from the employer regarding onboarding.</p>
+                </div>
+              ) : app.status === "Rejected" ? (
+                <div className="p-4 border rounded-xl bg-red-500/10 border-red-500/20 text-red-700 dark:text-red-400">
+                  <h4 className="font-semibold mb-2">Application Unsuccessful</h4>
+                  <p className="text-sm mb-4">Unfortunately, the hiring team has decided to move forward with other candidates.</p>
+                  <Button size="sm" variant="outline" render={<Link href="/candidate/jobs" />}>Find Other Jobs</Button>
+                </div>
+              ) : app.status === "Screening" || app.status === "Shortlisted" ? (
+                <div className="p-4 border rounded-xl bg-blue-500/10 border-blue-500/20 text-blue-700 dark:text-blue-400">
                   <h4 className="font-semibold mb-2">In Progress</h4>
                   <p className="text-sm">The hiring team is currently reviewing your profile. We will notify you once they make a decision.</p>
                 </div>

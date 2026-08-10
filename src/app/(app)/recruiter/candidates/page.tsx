@@ -97,108 +97,126 @@ export default function CandidatesList() {
         </CardHeader>
         <CardContent className="p-0">
           {/* Desktop table */}
-          <div className="hidden md:block overflow-x-auto">
-            <table className="w-full text-sm text-left">
-              <thead className="bg-muted/60 dark:bg-muted/40 border-y">
-                <tr>
-                  <th className="th-cell">Candidate</th>
-                  <th className="th-cell">Role Applied</th>
-                  <th className="th-cell">Experience</th>
-                  <th className="th-cell text-center">Match Score</th>
-                  <th className="th-cell">Status</th>
-                  <th className="th-cell">Applied Date</th>
-                  <th className="th-cell text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
+          {candidates.length === 0 && !loading ? (
+            <div className="p-12 flex flex-col items-center text-center bg-muted/10 border-dashed border-b last:border-b-0">
+              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                <Users className="h-6 w-6 text-primary opacity-80" />
+              </div>
+              <h3 className="font-semibold text-lg text-foreground mb-1">No candidates found</h3>
+              <p className="text-sm text-muted-foreground mb-5 max-w-sm">
+                You don't have any candidates yet. Make sure your job postings are active.
+              </p>
+              <Button render={<Link href="/recruiter/jobs" />} className="h-9 px-4 shadow-sm" variant="outline">
+                View Jobs
+              </Button>
+            </div>
+          ) : (
+            <>
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full text-sm text-left">
+                  <thead className="bg-muted/60 dark:bg-muted/40 border-y">
+                    <tr>
+                      <th className="th-cell">Candidate</th>
+                      <th className="th-cell">Role Applied</th>
+                      <th className="th-cell">Experience</th>
+                      <th className="th-cell text-center">Match Score</th>
+                      <th className="th-cell">Status</th>
+                      <th className="th-cell">Applied Date</th>
+                      <th className="th-cell text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {loading ? (
+                      [...Array(6)].map((_, i) => <RowSkeleton key={i} />)
+                    ) : filteredCandidates.length > 0 ? (
+                      filteredCandidates.map(candidate => (
+                        <tr key={candidate.id} className="hover:bg-muted/30 transition-colors">
+                          <td className="td-cell">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-full gradient-violet text-white flex items-center justify-center font-bold text-xs shrink-0">
+                                {candidate.avatar}
+                              </div>
+                              <span className="font-semibold">{candidate.name}</span>
+                            </div>
+                          </td>
+                          <td className="td-cell">{candidate.role}</td>
+                          <td className="td-cell text-muted-foreground">{candidate.experience}</td>
+                          <td className="td-cell">
+                            <div className="flex justify-center">
+                              <MatchBar score={candidate.matchScore} />
+                            </div>
+                          </td>
+                          <td className="td-cell">
+                            <StatusBadge status={candidate.status} />
+                          </td>
+                          <td className="td-cell text-muted-foreground">
+                            {new Date(candidate.appliedDate).toLocaleDateString()}
+                          </td>
+                          <td className="td-cell text-right">
+                            <Button variant="ghost" size="icon" render={<Link href={`/recruiter/candidates/${candidate.id}`} />}>
+                              <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                            </Button>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={7} className="text-center py-16 text-muted-foreground">
+                          <Users className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                          <p>No candidates found matching your search.</p>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile card list */}
+              <div className="md:hidden divide-y">
                 {loading ? (
-                  [...Array(6)].map((_, i) => <RowSkeleton key={i} />)
+                  <div className="p-4 space-y-3">
+                    {[...Array(5)].map((_, i) => (
+                      <div key={i} className="p-4 border rounded-xl space-y-2 animate-pulse">
+                        <div className="flex gap-3 items-center">
+                          <div className="w-9 h-9 rounded-full bg-muted shrink-0" />
+                          <div className="flex-1 space-y-1.5">
+                            <div className="h-4 bg-muted rounded w-3/4" />
+                            <div className="h-3 bg-muted rounded w-1/2" />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 ) : filteredCandidates.length > 0 ? (
                   filteredCandidates.map(candidate => (
-                    <tr key={candidate.id} className="hover:bg-muted/30 transition-colors">
-                      <td className="td-cell">
+                    <Link key={candidate.id} href={`/recruiter/candidates/${candidate.id}`}>
+                      <div className="p-4 hover:bg-muted/30 transition-colors">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full gradient-violet text-white flex items-center justify-center font-bold text-xs shrink-0">
+                          <div className="w-9 h-9 rounded-full gradient-violet text-white flex items-center justify-center font-bold text-sm shrink-0">
                             {candidate.avatar}
                           </div>
-                          <span className="font-semibold">{candidate.name}</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-sm truncate">{candidate.name}</p>
+                            <p className="text-xs text-muted-foreground truncate">{candidate.role} · {candidate.experience}</p>
+                          </div>
+                          <div className="flex flex-col items-end gap-1.5 shrink-0">
+                            <StatusBadge status={candidate.status} />
+                            <MatchBar score={candidate.matchScore} />
+                          </div>
                         </div>
-                      </td>
-                      <td className="td-cell">{candidate.role}</td>
-                      <td className="td-cell text-muted-foreground">{candidate.experience}</td>
-                      <td className="td-cell">
-                        <div className="flex justify-center">
-                          <MatchBar score={candidate.matchScore} />
-                        </div>
-                      </td>
-                      <td className="td-cell">
-                        <StatusBadge status={candidate.status} />
-                      </td>
-                      <td className="td-cell text-muted-foreground">
-                        {new Date(candidate.appliedDate).toLocaleDateString()}
-                      </td>
-                      <td className="td-cell text-right">
-                        <Button variant="ghost" size="icon" render={<Link href={`/recruiter/candidates/${candidate.id}`} />}>
-                          <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                        </Button>
-                      </td>
-                    </tr>
+                      </div>
+                    </Link>
                   ))
                 ) : (
-                  <tr>
-                    <td colSpan={7} className="text-center py-16 text-muted-foreground">
-                      <Users className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                      <p>No candidates found.</p>
-                    </td>
-                  </tr>
+                  <div className="text-center py-16 text-muted-foreground">
+                    <Users className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                    <p className="text-sm">No candidates found matching your search.</p>
+                  </div>
                 )}
-              </tbody>
-            </table>
-          </div>
+              </div>
+            </>
+          )}
 
-          {/* Mobile card list */}
-          <div className="md:hidden divide-y">
-            {loading ? (
-              <div className="p-4 space-y-3">
-                {[...Array(5)].map((_, i) => (
-                  <div key={i} className="p-4 border rounded-xl space-y-2 animate-pulse">
-                    <div className="flex gap-3 items-center">
-                      <div className="w-9 h-9 rounded-full bg-muted shrink-0" />
-                      <div className="flex-1 space-y-1.5">
-                        <div className="h-4 bg-muted rounded w-3/4" />
-                        <div className="h-3 bg-muted rounded w-1/2" />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : filteredCandidates.length > 0 ? (
-              filteredCandidates.map(candidate => (
-                <Link key={candidate.id} href={`/recruiter/candidates/${candidate.id}`}>
-                  <div className="p-4 hover:bg-muted/30 transition-colors">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full gradient-violet text-white flex items-center justify-center font-bold text-sm shrink-0">
-                        {candidate.avatar}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-sm truncate">{candidate.name}</p>
-                        <p className="text-xs text-muted-foreground truncate">{candidate.role} · {candidate.experience}</p>
-                      </div>
-                      <div className="flex flex-col items-end gap-1.5 shrink-0">
-                        <StatusBadge status={candidate.status} />
-                        <MatchBar score={candidate.matchScore} />
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              ))
-            ) : (
-              <div className="text-center py-16 text-muted-foreground">
-                <Users className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                <p className="text-sm">No candidates found.</p>
-              </div>
-            )}
-          </div>
         </CardContent>
       </Card>
     </div>

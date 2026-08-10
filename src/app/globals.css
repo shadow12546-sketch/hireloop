@@ -4,10 +4,10 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --primary:           262 80% 50%;
+  --primary:           238 85% 65%;
   --primary-foreground: 0 0% 100%;
 
-  --background:        0 0% 100%;
+  --background:        224 50% 99%;
   --foreground:        224 71% 8%;
 
   --card:              0 0% 100%;
@@ -30,22 +30,22 @@
 
   --border:            220 13% 88%;
   --input:             220 13% 88%;
-  --ring:              262 80% 50%;
+  --ring:              238 85% 65%;
 
   --radius:            0.625rem;
 }
 
 .dark {
-  --primary:           262 72% 63%;
+  --primary:           238 85% 75%;
   --primary-foreground: 0 0% 100%;
 
-  --background:        224 40% 7%;
+  --background:        224 45% 4%;
   --foreground:        213 31% 93%;
 
-  --card:              224 40% 10%;
+  --card:              224 45% 8%;
   --card-foreground:   213 31% 93%;
 
-  --popover:           224 40% 10%;
+  --popover:           224 45% 8%;
   --popover-foreground: 213 31% 93%;
 
   --secondary:         262 30% 18%;
@@ -62,7 +62,7 @@
 
   --border:            216 30% 20%;
   --input:             216 30% 20%;
-  --ring:              262 72% 63%;
+  --ring:              238 85% 75%;
 }
 
 @theme inline {
@@ -98,15 +98,15 @@
 
 /* ── Gradient utilities ──────────────────────────────────────────── */
 .gradient-violet {
-  background: linear-gradient(135deg, #7c22e5 0%, #a855f7 100%);
+  background: linear-gradient(135deg, #251c4eff 0%, #767afeff 100%);
 }
 
-/* Hero section bg — light soft lavender, dark deep navy-purple */
+/* Hero section bg — light soft blue, dark deep navy */
 .gradient-hero {
-  background: linear-gradient(160deg, #f3eeff 0%, #ede8ff 40%, #e8f4ff 100%);
+  background: linear-gradient(160deg, #eff4ff 0%, #e6f0ff 40%, #dde8ff 100%);
 }
 .dark .gradient-hero {
-  background: linear-gradient(160deg, #0e0a1f 0%, #120d2a 50%, #0a0f1e 100%);
+  background: linear-gradient(160deg, #0a0f25 0%, #111835 50%, #080c1d 100%);
 }
 
 /* Card hover lift */

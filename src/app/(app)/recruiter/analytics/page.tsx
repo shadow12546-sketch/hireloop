@@ -146,8 +146,22 @@ export default function AnalyticsDashboard() {
         </div>
       </div>
 
-      {/* ── Core KPIs ──────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+      {data.kpis.activeJobs === 0 && data.kpis.activeCandidates === 0 ? (
+        <Card className="border-dashed bg-muted/10 mt-8">
+          <CardContent className="p-16 flex flex-col items-center text-center">
+            <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mb-6">
+              <BarChart3 className="h-8 w-8 text-primary opacity-80" />
+            </div>
+            <h3 className="font-semibold text-xl text-foreground mb-2">Not enough data yet</h3>
+            <p className="text-muted-foreground max-w-md">
+              Your analytics dashboard will populate once candidates start applying to your active job postings.
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          {/* ── Core KPIs ──────────────────────────────────────────────────────── */}
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         {kpis.map((k, i) => (
           <KpiCard key={i} {...k} />
         ))}
@@ -396,6 +410,8 @@ export default function AnalyticsDashboard() {
           </Card>
         </div>
       </div>
+      </>
+    )}
     </div>
   )
 }

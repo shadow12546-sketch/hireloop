@@ -101,97 +101,114 @@ export default function RecruiterJobs() {
         </CardHeader>
         <CardContent className="p-0">
           {/* Desktop table */}
-          <div className="hidden sm:block overflow-x-auto">
-            <table className="w-full text-sm text-left">
-              <thead className="bg-muted/60 dark:bg-muted/40 border-y">
-                <tr>
-                  <th className="th-cell">Job Title</th>
-                  <th className="th-cell">Department</th>
-                  <th className="th-cell">Location</th>
-                  <th className="th-cell text-center">Applicants</th>
-                  <th className="th-cell">Status</th>
-                  <th className="th-cell">Deadline</th>
-                  <th className="th-cell text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
+          {jobs.length === 0 && !loading ? (
+            <div className="p-12 flex flex-col items-center text-center bg-muted/10 border-dashed border-b last:border-b-0">
+              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                <Briefcase className="h-6 w-6 text-primary opacity-80" />
+              </div>
+              <h3 className="font-semibold text-lg text-foreground mb-1">No jobs posted yet</h3>
+              <p className="text-sm text-muted-foreground mb-5 max-w-sm">
+                Create your first job posting to start attracting top candidates.
+              </p>
+              <Button render={<Link href="/recruiter/jobs/create" />} className="h-9 px-4 shadow-sm">
+                <Plus className="w-4 h-4 mr-2" /> Post Your First Job
+              </Button>
+            </div>
+          ) : (
+            <>
+              <div className="hidden sm:block overflow-x-auto">
+                <table className="w-full text-sm text-left">
+                  <thead className="bg-muted/60 dark:bg-muted/40 border-y">
+                    <tr>
+                      <th className="th-cell">Job Title</th>
+                      <th className="th-cell">Department</th>
+                      <th className="th-cell">Location</th>
+                      <th className="th-cell text-center">Applicants</th>
+                      <th className="th-cell">Status</th>
+                      <th className="th-cell">Deadline</th>
+                      <th className="th-cell text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {loading ? (
+                      [...Array(5)].map((_, i) => <JobRowSkeleton key={i} />)
+                    ) : filteredJobs.length > 0 ? (
+                      filteredJobs.map(job => (
+                        <tr key={job.id} className="hover:bg-muted/30 transition-colors">
+                          <td className="td-cell font-semibold">{job.title}</td>
+                          <td className="td-cell text-muted-foreground">{job.department}</td>
+                          <td className="td-cell text-muted-foreground">{job.location}</td>
+                          <td className="td-cell text-center">
+                            <Badge variant="secondary">{job.applications}</Badge>
+                          </td>
+                          <td className="td-cell">
+                            <StatusBadge status={job.status} />
+                          </td>
+                          <td className="td-cell text-muted-foreground">
+                            {new Date(job.deadline).toLocaleDateString()}
+                          </td>
+                          <td className="td-cell text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <Button variant="ghost" size="icon" render={<Link href={`/recruiter/jobs/${job.id}`} />}>
+                                <Eye className="w-4 h-4 text-muted-foreground" />
+                              </Button>
+                              <Button variant="ghost" size="icon">
+                                <Edit className="w-4 h-4 text-muted-foreground" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="hover:text-destructive">
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={7} className="text-center py-16 text-muted-foreground">
+                          <Briefcase className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                          <p>No jobs found matching your search.</p>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile card list */}
+              <div className="sm:hidden divide-y">
                 {loading ? (
-                  [...Array(5)].map((_, i) => <JobRowSkeleton key={i} />)
+                  <div className="p-4 space-y-3">
+                    {[...Array(4)].map((_, i) => <JobCardSkeleton key={i} />)}
+                  </div>
                 ) : filteredJobs.length > 0 ? (
                   filteredJobs.map(job => (
-                    <tr key={job.id} className="hover:bg-muted/30 transition-colors">
-                      <td className="td-cell font-semibold">{job.title}</td>
-                      <td className="td-cell text-muted-foreground">{job.department}</td>
-                      <td className="td-cell text-muted-foreground">{job.location}</td>
-                      <td className="td-cell text-center">
-                        <Badge variant="secondary">{job.applications}</Badge>
-                      </td>
-                      <td className="td-cell">
-                        <StatusBadge status={job.status} />
-                      </td>
-                      <td className="td-cell text-muted-foreground">
-                        {new Date(job.deadline).toLocaleDateString()}
-                      </td>
-                      <td className="td-cell text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button variant="ghost" size="icon" render={<Link href={`/recruiter/jobs/${job.id}`} />}>
-                            <Eye className="w-4 h-4 text-muted-foreground" />
-                          </Button>
-                          <Button variant="ghost" size="icon">
-                            <Edit className="w-4 h-4 text-muted-foreground" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="hover:text-destructive">
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+                    <Link key={job.id} href={`/recruiter/jobs/${job.id}`}>
+                      <div className="p-4 hover:bg-muted/30 transition-colors">
+                        <div className="flex items-start justify-between gap-3 mb-2">
+                          <div>
+                            <p className="font-semibold text-sm">{job.title}</p>
+                            <p className="text-xs text-muted-foreground">{job.department} · {job.location}</p>
+                          </div>
+                          <StatusBadge status={job.status} />
                         </div>
-                      </td>
-                    </tr>
+                        <div className="flex items-center gap-3 mt-2">
+                          <Badge variant="secondary" className="text-xs">{job.applications} applicants</Badge>
+                          <span className="text-xs text-muted-foreground">
+                            Due {new Date(job.deadline).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+                    </Link>
                   ))
                 ) : (
-                  <tr>
-                    <td colSpan={7} className="text-center py-16 text-muted-foreground">
-                      <Briefcase className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                      <p>No jobs found matching your search.</p>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Mobile card list */}
-          <div className="sm:hidden divide-y">
-            {loading ? (
-              <div className="p-4 space-y-3">
-                {[...Array(4)].map((_, i) => <JobCardSkeleton key={i} />)}
-              </div>
-            ) : filteredJobs.length > 0 ? (
-              filteredJobs.map(job => (
-                <Link key={job.id} href={`/recruiter/jobs/${job.id}`}>
-                  <div className="p-4 hover:bg-muted/30 transition-colors">
-                    <div className="flex items-start justify-between gap-3 mb-2">
-                      <div>
-                        <p className="font-semibold text-sm">{job.title}</p>
-                        <p className="text-xs text-muted-foreground">{job.department} · {job.location}</p>
-                      </div>
-                      <StatusBadge status={job.status} />
-                    </div>
-                    <div className="flex items-center gap-3 mt-2">
-                      <Badge variant="secondary" className="text-xs">{job.applications} applicants</Badge>
-                      <span className="text-xs text-muted-foreground">
-                        Due {new Date(job.deadline).toLocaleDateString()}
-                      </span>
-                    </div>
+                  <div className="text-center py-16 text-muted-foreground">
+                    <Briefcase className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                    <p className="text-sm">No jobs found matching your search.</p>
                   </div>
-                </Link>
-              ))
-            ) : (
-              <div className="text-center py-16 text-muted-foreground">
-                <Briefcase className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                <p className="text-sm">No jobs found matching your search.</p>
+                )}
               </div>
-            )}
-          </div>
+            </>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -46,7 +46,7 @@ export function HeroSection() {
             Find Top Talent &amp;{" "}
             <span
               style={{
-                backgroundImage: "linear-gradient(135deg, #7c22e5 0%, #a855f7 100%)",
+                backgroundImage: "linear-gradient(135deg, #251c4eff 0%, #767afeff 100%)",
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
                 backgroundClip: "text",
@@ -79,7 +79,7 @@ export function HeroSection() {
                 <span className="text-sm text-muted-foreground">Remote / India</span>
               </div>
               <Button
-                style={{ background: "linear-gradient(135deg, #7c22e5 0%, #a855f7 100%)" }}
+                style={{ background: "linear-gradient(135deg, #251c4eff 0%, #767afeff 100%)" }}
                 className="border-none text-white rounded-xl px-6 font-semibold hover:opacity-90 shrink-0"
               >
                 Search
@@ -102,7 +102,7 @@ export function HeroSection() {
             <Link href="/register?role=candidate">
               <Button
                 size="lg"
-                style={{ background: "linear-gradient(135deg, #7c22e5 0%, #a855f7 100%)" }}
+                style={{ background: "linear-gradient(135deg, #251c4eff 0%, #767afeff 100%)" }}
                 className="border-none text-white font-bold rounded-xl px-8 hover:opacity-90 gap-2"
               >
                 <Briefcase className="h-4 w-4" /> Find a Job
@@ -223,7 +223,7 @@ export function OpportunitiesSection() {
               Latest <span className="text-primary">Opportunities</span>
             </h2>
             <p className="text-muted-foreground mt-2">
-              Fresh jobs, hackathons, and internships updated daily
+              Fresh jobs and internships updated daily
             </p>
           </div>
           <Link href="/candidate/jobs">
@@ -235,7 +235,7 @@ export function OpportunitiesSection() {
 
         {/* Filter tabs */}
         <div className="flex gap-2 mb-8 overflow-x-auto pb-2 scrollbar-none">
-          {["All", "Jobs", "Internships", "Hackathons", "Competitions", "Fellowships"].map((tab, i) => (
+          {["All", "Jobs", "Internships"].map((tab, i) => (
             <button
               key={tab}
               className={`shrink-0 rounded-full px-4 py-1.5 text-sm font-semibold border transition-all ${
@@ -243,7 +243,7 @@ export function OpportunitiesSection() {
                   ? "text-white border-transparent"
                   : "border-border text-muted-foreground hover:text-foreground hover:border-primary/40 dark:border-border"
               }`}
-              style={i === 0 ? { background: "linear-gradient(135deg, #7c22e5 0%, #a855f7 100%)" } : {}}
+              style={i === 0 ? { background: "linear-gradient(135deg, #251c4eff 0%, #767afeff 100%)" } : {}}
             >
               {tab}
             </button>
@@ -302,7 +302,6 @@ export function OpportunitiesSection() {
 // ─── Features ─────────────────────────────────────────────────────────────────
 const features = [
   { icon: Brain,    title: "AI Resume Analysis",    desc: "Smart parsing extracts skills and gives an explainable match score against every job." },
-  { icon: Trophy,   title: "Hackathons & Competitions", desc: "Discover and participate in curated challenges from top companies — build your portfolio." },
   { icon: Code2,    title: "Coding Assessments",    desc: "In-browser IDE with auto-grading. Recruiters assign; candidates solve — results in real time." },
   { icon: BarChart3, title: "Recruiter Analytics",  desc: "Funnel charts, time-to-hire metrics, and candidate quality scores at a glance." },
   { icon: Calendar, title: "Smart Scheduling",      desc: "One-click interview scheduling synced across recruiter, interviewer, and candidate." },
@@ -332,7 +331,7 @@ export function FeaturesSection() {
             >
               <div
                 className="mb-4 h-11 w-11 rounded-xl flex items-center justify-center shadow-md"
-                style={{ background: "linear-gradient(135deg, #7c22e5 0%, #a855f7 100%)" }}
+                style={{ background: "linear-gradient(135deg, #251c4eff 0%, #767afeff 100%)" }}
               >
                 <f.icon className="h-5 w-5 text-white" />
               </div>
@@ -371,7 +370,7 @@ export function HowItWorksSection() {
               <div className="relative z-10">
                 <div
                   className="h-12 w-12 rounded-2xl flex items-center justify-center mb-4 shadow-lg"
-                  style={{ background: "linear-gradient(135deg, #7c22e5 0%, #a855f7 100%)" }}
+                  style={{ background: "linear-gradient(135deg,  #251c4eff 0%, #767afeff 100%)" }}
                 >
                   <s.icon className="h-5 w-5 text-white" />
                 </div>
@@ -438,7 +437,7 @@ export function TestimonialsSection() {
               <div className="flex items-center gap-3">
                 <div
                   className="h-10 w-10 rounded-full flex items-center justify-center text-white font-bold shrink-0 text-sm"
-                  style={{ background: "linear-gradient(135deg, #7c22e5 0%, #a855f7 100%)" }}
+                  style={{ background: "linear-gradient(135deg, #251c4eff 0%, #767afeff 100%)" }}
                 >
                   {t.avatar}
                 </div>
@@ -460,7 +459,7 @@ export function CTASection() {
   return (
     <section
       className="py-24 relative overflow-hidden"
-      style={{ background: "linear-gradient(135deg, #5b10b5 0%, #7c22e5 50%, #9333ea 100%)" }}
+      style={{ background: "linear-gradient(135deg, #1c153c 0%, #251c4e 50%, #767afe 100%)" }}
     >
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div className="absolute -top-20 -right-20 h-64 w-64 rounded-full bg-white/8 blur-2xl" />
@@ -519,7 +518,7 @@ export function Footer() {
             <div className="flex items-center gap-2 mb-2">
               <div
                 className="h-8 w-8 rounded-lg flex items-center justify-center"
-                style={{ background: "linear-gradient(135deg, #7c22e5 0%, #a855f7 100%)" }}
+                style={{ background: "linear-gradient(135deg, #251c4eff 0%, #767afeff 100%)" }}
               >
                 <span className="text-white font-black text-sm">D</span>
               </div>

@@ -11,7 +11,7 @@ import { ChevronLeft, Plus, Save, Send } from "lucide-react"
 
 export default function CreateJob() {
   const router = useRouter()
-  const [submitting, setSubmitting] = useState(false)
+  const [submitting, setSubmitting] = useState<string | false>(false)
   
   const [form, setForm] = useState({
     title: "",
@@ -40,9 +40,9 @@ export default function CreateJob() {
     setForm({ ...form, requirements: newReqs })
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent, action: 'draft' | 'publish' = 'publish') => {
     e.preventDefault()
-    setSubmitting(true)
+    setSubmitting(action)
     // Simulate API call
     await new Promise(r => setTimeout(r, 1000))
     setSubmitting(false)
@@ -179,10 +179,59 @@ export default function CreateJob() {
           </CardContent>
         </Card>
 
+        <Card>
+          <CardHeader>
+            <CardTitle>Hiring Pipeline Setup</CardTitle>
+            <CardDescription>Configure the additional stages for this role.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="flex items-center justify-between p-4 border rounded-xl bg-card">
+              <div className="space-y-1">
+                <p className="font-medium text-sm leading-none">Include Skills Assessment</p>
+                <p className="text-xs text-muted-foreground">Automatically assign an AI-scored assessment to shortlisted candidates.</p>
+              </div>
+              <div className="relative inline-flex h-6 w-11 items-center rounded-full bg-primary transition-colors cursor-pointer">
+                <span className="inline-block h-4 w-4 translate-x-6 rounded-full bg-white transition-transform" />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between p-4 border rounded-xl bg-card">
+              <div className="space-y-1">
+                <p className="font-medium text-sm leading-none">Require Technical Interview</p>
+                <p className="text-xs text-muted-foreground">Add a dedicated technical interview stage before the final round.</p>
+              </div>
+              <div className="relative inline-flex h-6 w-11 items-center rounded-full bg-primary transition-colors cursor-pointer">
+                <span className="inline-block h-4 w-4 translate-x-6 rounded-full bg-white transition-transform" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         <div className="flex justify-end gap-4 sticky bottom-4 p-4 bg-background/80 backdrop-blur-sm border rounded-2xl shadow-sm">
           <Button type="button" variant="outline" onClick={() => router.back()}>Cancel</Button>
-          <Button type="submit" disabled={submitting} className="gap-2 min-w-[150px]">
-            {submitting ? (
+          <Button 
+            type="button" 
+            variant="secondary"
+            disabled={submitting !== false} 
+            onClick={(e) => handleSubmit(e, 'draft')}
+            className="gap-2 min-w-[150px]"
+          >
+            {submitting === 'draft' ? (
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-foreground"></div>
+            ) : (
+              <>
+                <Save className="w-4 h-4" />
+                Save as Draft
+              </>
+            )}
+          </Button>
+          <Button 
+            type="submit" 
+            disabled={submitting !== false} 
+            onClick={(e) => handleSubmit(e, 'publish')}
+            className="gap-2 min-w-[150px]"
+          >
+            {submitting === 'publish' ? (
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-foreground"></div>
             ) : (
               <>

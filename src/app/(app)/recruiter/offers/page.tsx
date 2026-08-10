@@ -114,21 +114,34 @@ export default function RecruiterOffers() {
           <CardTitle>Track Offers</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
-              <thead className="bg-muted/50 text-muted-foreground font-medium border-y">
-                <tr>
-                  <th className="px-6 py-4">Candidate</th>
-                  <th className="px-6 py-4">Role</th>
-                  <th className="px-6 py-4">Salary Offered</th>
-                  <th className="px-6 py-4">Joining Date</th>
-                  <th className="px-6 py-4">Status</th>
-                  <th className="px-6 py-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {offers.length > 0 ? (
-                  offers.map(offer => (
+          {offers.length === 0 && !loading ? (
+            <div className="p-12 flex flex-col items-center text-center bg-muted/10 border-dashed border-b last:border-b-0">
+              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                <Award className="h-6 w-6 text-primary opacity-80" />
+              </div>
+              <h3 className="font-semibold text-lg text-foreground mb-1">No offers created yet</h3>
+              <p className="text-sm text-muted-foreground mb-5 max-w-sm">
+                You haven't extended any offers to candidates. Use the Create New Offer button to draft your first offer letter.
+              </p>
+              <Button onClick={() => setIsCreating(true)} className="h-9 px-4 shadow-sm" variant="outline">
+                <Award className="w-4 h-4 mr-2" /> Create New Offer
+              </Button>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-left">
+                <thead className="bg-muted/50 text-muted-foreground font-medium border-y">
+                  <tr>
+                    <th className="px-6 py-4">Candidate</th>
+                    <th className="px-6 py-4">Role</th>
+                    <th className="px-6 py-4">Salary Offered</th>
+                    <th className="px-6 py-4">Joining Date</th>
+                    <th className="px-6 py-4">Status</th>
+                    <th className="px-6 py-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {offers.map(offer => (
                     <tr key={offer.id} className="hover:bg-muted/30 transition-colors">
                       <td className="px-6 py-4 font-semibold">{offer.candidate}</td>
                       <td className="px-6 py-4">{offer.role}</td>
@@ -149,17 +162,11 @@ export default function RecruiterOffers() {
                         </Button>
                       </td>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={6} className="text-center py-8 text-muted-foreground">
-                      No offers have been sent out.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

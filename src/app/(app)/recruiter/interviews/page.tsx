@@ -166,11 +166,20 @@ export default function RecruiterInterviews() {
             </Card>
           ))
         ) : (
-          <div className="text-center py-20 border rounded-2xl bg-card">
-            <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
-            <h3 className="text-lg font-medium">No interviews scheduled</h3>
-            <p className="text-muted-foreground mt-1">Click the schedule button to set up an interview.</p>
-          </div>
+          <Card className="border-dashed bg-muted/10">
+            <CardContent className="p-12 flex flex-col items-center text-center">
+              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                <Calendar className="h-6 w-6 text-primary opacity-80" />
+              </div>
+              <h3 className="font-semibold text-lg text-foreground mb-1">No upcoming interviews</h3>
+              <p className="text-sm text-muted-foreground mb-5 max-w-sm">
+                You haven't scheduled any interviews yet. Click the schedule button to set up an interview with a candidate.
+              </p>
+              <Button onClick={() => setIsScheduling(true)} className="h-9 px-4 shadow-sm" variant="outline">
+                <Plus className="w-4 h-4 mr-2" /> Schedule Interview
+              </Button>
+            </CardContent>
+          </Card>
         )}
       </div>
     </div>

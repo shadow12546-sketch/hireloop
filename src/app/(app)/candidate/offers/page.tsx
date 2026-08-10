@@ -2,6 +2,7 @@
 import { offerService } from "@/services/offerService"
 
 import { useState, useEffect } from "react"
+import Link from "next/link"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Award, Building2, DollarSign, Clock, Download, CheckCircle2, XCircle } from "lucide-react"
@@ -46,11 +47,20 @@ export default function CandidateOffers() {
       </div>
 
       {offers.length === 0 ? (
-        <div className="text-center py-20 border rounded-2xl bg-card">
-          <Award className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
-          <h3 className="text-lg font-medium">No offers yet</h3>
-          <p className="text-muted-foreground mt-1">Keep up the great work in your interviews!</p>
-        </div>
+        <Card className="border-dashed bg-muted/10">
+          <CardContent className="p-12 flex flex-col items-center text-center">
+            <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+              <Award className="h-6 w-6 text-primary opacity-80" />
+            </div>
+            <h3 className="font-semibold text-lg text-foreground mb-1">No offers yet</h3>
+            <p className="text-sm text-muted-foreground mb-5 max-w-sm">
+              Keep up the great work in your interviews! Job offers will appear here when you receive them.
+            </p>
+            <Button render={<Link href="/candidate/applications" />} className="h-9 px-4 shadow-sm" variant="outline">
+              Track Applications
+            </Button>
+          </CardContent>
+        </Card>
       ) : (
         <div className="space-y-6">
           {offers.map(offer => (
@@ -58,14 +68,15 @@ export default function CandidateOffers() {
               <div className={`px-6 py-3 border-b flex justify-between items-center ${
                 offer.status === 'Accepted' ? 'bg-green-500/10 text-green-700 dark:text-green-400' :
                 offer.status === 'Rejected' ? 'bg-destructive/10 text-destructive' :
+                offer.status === 'Expired' ? 'bg-muted/50 text-muted-foreground' :
                 'bg-primary/5 text-primary'
               }`}>
                 <span className="font-bold flex items-center gap-2">
                   {offer.status === 'Accepted' && <CheckCircle2 className="w-4 h-4" />}
                   {offer.status === 'Rejected' && <XCircle className="w-4 h-4" />}
-                  {offer.status === 'Pending' ? 'Action Required' : offer.status}
+                  {offer.status === 'Pending' || offer.status === 'Sent' || offer.status === 'Viewed' ? 'Action Required' : offer.status}
                 </span>
-                {offer.status === 'Pending' && <span className="text-sm font-medium">Expires {new Date(offer.expires).toLocaleDateString()}</span>}
+                {(offer.status === 'Pending' || offer.status === 'Sent' || offer.status === 'Viewed') && <span className="text-sm font-medium">Expires {new Date(offer.expires).toLocaleDateString()}</span>}
               </div>
               <CardContent className="p-6">
                 <div className="flex flex-col md:flex-row justify-between gap-6">
@@ -99,7 +110,7 @@ export default function CandidateOffers() {
                       <Download className="w-4 h-4" /> View Offer Letter
                     </Button>
                     
-                    {offer.status === 'Pending' && (
+                    {offer.status === 'Pending' || offer.status === 'Sent' || offer.status === 'Viewed' ? (
                       <>
                         <Button 
                           className="w-full bg-green-600 hover:bg-green-700 text-white" 
@@ -117,7 +128,11 @@ export default function CandidateOffers() {
                           Decline
                         </Button>
                       </>
-                    )}
+                    ) : offer.status === 'Expired' ? (
+                      <Button variant="secondary" className="w-full text-muted-foreground" disabled>
+                        Offer Expired
+                      </Button>
+                    ) : null}
                   </div>
                 </div>
               </CardContent>

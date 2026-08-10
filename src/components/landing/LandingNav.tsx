@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils"
 const navLinks = [
   {
     label: "Opportunities",
-    sub: ["Jobs", "Internships", "Hackathons", "Competitions"],
+    sub: ["Jobs", "Internships"],
   },
   {
     label: "For Recruiters",

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ChevronLeft, UserCircle, Download, FileText, Calendar, CheckCircle2, MessageSquare, Award } from "lucide-react"
+import { ChevronLeft, UserCircle, Download, FileText, Calendar, CheckCircle2, MessageSquare, Award, AlertCircle } from "lucide-react"
 
 export default function CandidateProfileView({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params)
@@ -89,20 +89,54 @@ export default function CandidateProfileView({ params }: { params: Promise<{ id:
             </TabsList>
             
             <TabsContent value="profile" className="space-y-6 mt-6">
-              <Card>
+              <Card className="border-primary/20 bg-primary/5">
                 <CardHeader>
-                  <CardTitle>AI Match Analysis</CardTitle>
-                  <CardDescription>Generated based on resume parsing against job requirements.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 rounded-full border-4 border-primary flex items-center justify-center">
-                      <span className="text-xl font-bold">{candidate.matchScore}%</span>
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="p-2 bg-primary/10 rounded-lg">
+                      <Award className="w-5 h-5 text-primary" />
                     </div>
                     <div>
-                      <h4 className="font-semibold text-lg">Excellent Match</h4>
-                      <p className="text-sm text-muted-foreground">Candidate exceeds the primary requirements for this role.</p>
+                      <CardTitle className="text-lg">AI Candidate Analysis</CardTitle>
+                      <CardDescription>Powered by AI resume parsing</CardDescription>
                     </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="flex items-center gap-6 p-4 bg-background rounded-xl border">
+                    <div className="w-20 h-20 shrink-0 rounded-full border-4 border-primary/20 flex items-center justify-center relative">
+                      <div className="absolute inset-0 border-4 border-primary rounded-full" style={{ clipPath: `polygon(0 0, 100% 0, 100% ${100 - candidate.matchScore}%, 0 ${100 - candidate.matchScore}%)`, transform: 'rotate(-90deg)' }} />
+                      <span className="text-2xl font-bold text-primary">{candidate.matchScore}%</span>
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-lg mb-1">Strong Match</h4>
+                      <p className="text-sm text-muted-foreground">This candidate strongly aligns with the core requirements of the job description. They have the required experience level and technical foundation.</p>
+                    </div>
+                  </div>
+
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div className="space-y-3">
+                      <h5 className="font-semibold text-sm flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-green-500" /> Key Strengths
+                      </h5>
+                      <ul className="text-sm space-y-2 text-muted-foreground list-disc pl-5">
+                        <li>Extensive experience in the required tech stack</li>
+                        <li>Demonstrated leadership in previous roles</li>
+                        <li>Relevant industry background</li>
+                      </ul>
+                    </div>
+                    <div className="space-y-3">
+                      <h5 className="font-semibold text-sm flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4 text-amber-500" /> Potential Gaps
+                      </h5>
+                      <ul className="text-sm space-y-2 text-muted-foreground list-disc pl-5">
+                        <li>Slightly under expected years of management experience</li>
+                        <li>Missing specific certification mentioned as 'nice to have'</li>
+                      </ul>
+                    </div>
+                  </div>
+                  
+                  <div className="p-4 bg-primary/10 rounded-lg text-sm border border-primary/20">
+                    <strong>AI Recommendation:</strong> Move forward to technical screening. Focus interview questions on their management experience to gauge readiness for team leadership.
                   </div>
                 </CardContent>
               </Card>
