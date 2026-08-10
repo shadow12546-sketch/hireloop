@@ -25,17 +25,27 @@ export default function LoginPage() {
     setError("")
     setLoading(true)
     try {
+      // In mock mode: if this email has no stored role yet (registered before the fix),
+      // save the UI-selected role now so it's picked up by the login mock.
+      const existingStored = typeof window !== "undefined"
+        ? localStorage.getItem(`mock_user_role_${email}`)
+        : null
+      if (!existingStored && typeof window !== "undefined") {
+        const inferredRole = role === "employer" ? "Employer" : "Candidate"
+        localStorage.setItem(`mock_user_role_${email}`, inferredRole)
+      }
+
       const response = await authService.login({ email, password })
       const isActualEmployer = response.user?.role === "Recruiter" || response.user?.role === "Employer" || email.includes("@company.com");
       
       if (role === "employer" && !isActualEmployer) {
-        setError("These credentials belong to a Candidate account. Please select Candidate to continue.")
+        setError("This account is registered as a Candidate. Please select Candidate to continue.")
         setLoading(false)
         return
       }
 
       if (role === "candidate" && isActualEmployer) {
-        setError("These credentials belong to an Employer account. Please select Employer to continue.")
+        setError("This account is registered as an Employer. Please select Employer to continue.")
         setLoading(false)
         return
       }
@@ -61,13 +71,13 @@ export default function LoginPage() {
       const isActualEmployer = response.user?.role === "Recruiter" || response.user?.role === "Employer";
 
       if (role === "employer" && !isActualEmployer) {
-        setError("These credentials belong to a Candidate account. Please select Candidate to continue.")
+        setError("This account is registered as a Candidate. Please select Candidate to continue.")
         setLoading(false)
         return
       }
 
       if (role === "candidate" && isActualEmployer) {
-        setError("These credentials belong to an Employer account. Please select Employer to continue.")
+        setError("This account is registered as an Employer. Please select Employer to continue.")
         setLoading(false)
         return
       }

@@ -251,21 +251,21 @@ function RegisterForm() {
     } else {
       return (
         <div className="w-full flex flex-col items-center justify-center gap-4 py-8 text-center animate-in fade-in zoom-in-95">
-          <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-2">
+          <div className="h-16 w-16 rounded-full bg-green-500/10 flex items-center justify-center text-green-600 mb-2">
             <CheckCircle2 className="h-8 w-8" />
           </div>
-          <h2 className="text-2xl font-bold text-foreground tracking-tight">Registration submitted</h2>
-          <p className="text-muted-foreground max-w-sm mb-4">
-            Your organization verification request has been submitted. You can access employer features after verification is completed.
+          <h2 className="text-2xl font-bold text-foreground tracking-tight">Registration Successful</h2>
+          <p className="text-muted-foreground max-w-sm mb-2">
+            Your employer account has been verified successfully. You can now sign in and access your employer dashboard.
           </p>
-          <div className="flex items-center justify-center w-full mb-6">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 rounded-lg text-sm font-semibold">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Pending Verification
+          <div className="flex items-center justify-center w-full mb-4">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-500/10 border border-green-500/20 text-green-600 dark:text-green-400 rounded-lg text-sm font-semibold">
+              <CheckCircle2 className="h-4 w-4" />
+              ✓ Verified
             </div>
           </div>
-          <Button onClick={() => window.location.href = "/login"} className="w-full h-11" variant="outline">
-            Return to Login
+          <Button onClick={() => window.location.href = "/login"} className="w-full h-11 gradient-violet border-none text-white font-bold hover:opacity-90">
+            Continue to Login
           </Button>
         </div>
       )

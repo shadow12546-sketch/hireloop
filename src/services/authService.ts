@@ -7,7 +7,21 @@ export const authService = {
   login: async (credentials: any) => {
     if (IS_MOCK) {
       await delay(800)
-      return { token: "mock_token", user: mockUsers[0] }
+      // Check if this email was registered locally (stored during mock registration)
+      const storedRole = typeof window !== "undefined"
+        ? localStorage.getItem(`mock_user_role_${credentials.email}`)
+        : null
+      // Try to find in existing mock users first
+      const existingUser = mockUsers.find(u => u.email === credentials.email)
+      if (existingUser) {
+        return { token: "mock_token", user: existingUser }
+      }
+      // Newly registered user — use their stored role
+      const role = storedRole || "Candidate"
+      return {
+        token: "mock_token",
+        user: { id: "usr_new", name: credentials.email, email: credentials.email, role, status: "Active" }
+      }
     }
     return apiClient.post<any>("/auth/login", credentials)
   },
@@ -15,7 +29,12 @@ export const authService = {
   register: async (data: any) => {
     if (IS_MOCK) {
       await delay(800)
-      return { token: "mock_token", user: { ...mockUsers[0], name: data.name, email: data.email } }
+      // Save email → role mapping so login can look it up
+      const roleToStore = data.role === "employer" ? "Employer" : "Candidate"
+      if (typeof window !== "undefined") {
+        localStorage.setItem(`mock_user_role_${data.email}`, roleToStore)
+      }
+      return { token: "mock_token", user: { ...mockUsers[0], name: data.name, email: data.email, role: roleToStore } }
     }
     return apiClient.post<any>("/auth/register", data)
   },
