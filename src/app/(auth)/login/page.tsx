@@ -99,7 +99,7 @@ export default function LoginPage() {
       <div>
         <h1 className="text-2xl font-black tracking-tight">Welcome back 👋</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Sign in to continue to DevFusion
+          Sign in to continue to HireLoop
         </p>
       </div>
 
@@ -178,7 +178,7 @@ export default function LoginPage() {
       </Button>
 
       <p className="text-center text-sm text-muted-foreground">
-        New to DevFusion?{" "}
+        New to HireLoop?{" "}
         <Link href="/register" className="font-bold text-primary hover:underline">Create account</Link>
       </p>
     </div>

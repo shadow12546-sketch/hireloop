@@ -7,20 +7,45 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Progress } from "@/components/ui/progress"
-import { Plus, Trash2, Save, UploadCloud } from "lucide-react"
+import { Plus, Trash2, Save, UploadCloud, AlertCircle } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 
 export default function CandidateProfile() {
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [hasUnsavedParsedData, setHasUnsavedParsedData] = useState(false)
   
   const [newSkill, setNewSkill] = useState("")
 
   useEffect(() => {
     async function load() {
       try {
-        const data = await candidateService.getProfile()
+        let data = await candidateService.getProfile()
+        
+        // Merge parsed data if available
+        if (typeof window !== "undefined") {
+          const parsedDataStr = sessionStorage.getItem("parsed_resume_data")
+          if (parsedDataStr) {
+            const parsedData = JSON.parse(parsedDataStr)
+            
+            data = {
+              ...data,
+              firstName: parsedData.name?.split(" ")[0] || data.firstName,
+              lastName: parsedData.name?.split(" ").slice(1).join(" ") || data.lastName,
+              email: parsedData.email || data.email,
+              phone: parsedData.phone || data.phone,
+              skills: Array.from(new Set([...data.skills, ...(parsedData.skills || [])])),
+              experience: parsedData.experience && parsedData.experience.length > 0 
+                ? parsedData.experience.map((exp: any, i: number) => ({ id: `new_exp_${i}`, ...exp }))
+                : data.experience
+            }
+            
+            setHasUnsavedParsedData(true)
+            sessionStorage.removeItem("parsed_resume_data")
+          }
+        }
+
         setProfile(data)
       } finally {
         setLoading(false)
@@ -34,6 +59,7 @@ export default function CandidateProfile() {
     // Simulate API save
     await new Promise(r => setTimeout(r, 800))
     setSaving(false)
+    setHasUnsavedParsedData(false)
     alert("Profile saved successfully!")
   }
 
@@ -64,6 +90,16 @@ export default function CandidateProfile() {
         <h1 className="text-3xl font-bold tracking-tight">Your Profile</h1>
         <p className="text-muted-foreground mt-1">Manage your personal information, resume, and preferences.</p>
       </div>
+
+      {hasUnsavedParsedData && (
+        <div className="p-4 bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 rounded-xl flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+          <div>
+            <h4 className="font-semibold text-sm mb-1">Please Review AI Parsed Data</h4>
+            <p className="text-sm opacity-90">Your resume was successfully parsed. The fields below have been auto-filled. Please review and confirm the details before saving.</p>
+          </div>
+        </div>
+      )}
 
       <Card>
         <CardContent className="p-6">

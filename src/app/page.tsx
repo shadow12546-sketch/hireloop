@@ -11,7 +11,7 @@ import {
 } from "@/components/landing/LandingSections"
 
 export const metadata = {
-  title: "DevFusion ATS — Find Jobs, Hackathons & Top Talent with AI",
+  title: "HireLoop — Find Jobs, Hackathons & Top Talent with AI",
   description:
     "India's smartest AI-powered recruitment and applicant tracking platform. Discover jobs, internships, hackathons, and competitions. Recruiters: hire smarter with AI resume screening, coding assessments, and pipeline automation.",
 }

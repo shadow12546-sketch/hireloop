@@ -3,7 +3,9 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { UploadCloud, FileText, Trash2, Eye, RefreshCw, CheckCircle2 } from "lucide-react"
+import { UploadCloud, FileText, Trash2, Eye, RefreshCw, CheckCircle2, Loader2 } from "lucide-react"
+import { aiService } from "@/services/aiService"
+import { useRouter } from "next/navigation"
 
 export default function CandidateResume() {
   const [isUploading, setIsUploading] = useState(false)
@@ -13,28 +15,50 @@ export default function CandidateResume() {
     date: "Aug 1, 2026",
     size: "2.4 MB"
   })
+  const router = useRouter()
 
-  const simulateUpload = () => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
     setIsUploading(true)
     setUploadProgress(0)
-    
+
+    // Simulate progress bar while the API call is happening
     const interval = setInterval(() => {
       setUploadProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval)
-          setTimeout(() => {
-            setIsUploading(false)
-            setResume({
-              name: "new_resume_uploaded.pdf",
-              date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-              size: "1.8 MB"
-            })
-          }, 500)
-          return 100
-        }
-        return prev + 10
+        if (prev >= 90) return 90
+        return prev + 15
       })
-    }, 300)
+    }, 400)
+
+    try {
+      const parsedData = await aiService.parseResume(file)
+      clearInterval(interval)
+      setUploadProgress(100)
+      
+      // Store in session storage for the profile page to pick up
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("parsed_resume_data", JSON.stringify(parsedData))
+      }
+
+      setResume({
+        name: file.name,
+        date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        size: (file.size / (1024 * 1024)).toFixed(1) + " MB"
+      })
+
+      // Redirect to profile to review/confirm
+      setTimeout(() => {
+        router.push("/candidate/profile?action=review_parsed_resume")
+      }, 1000)
+
+    } catch (error) {
+      console.error("Resume parsing failed", error)
+      clearInterval(interval)
+      setIsUploading(false)
+      alert("AI temporarily unavailable, please retry")
+    }
   }
 
   const handleDelete = () => {
@@ -95,16 +119,16 @@ export default function CandidateResume() {
         </CardHeader>
         <CardContent>
           {!isUploading ? (
-            <div 
-              className="border-2 border-dashed rounded-xl p-12 text-center hover:border-primary/50 transition-colors bg-muted/10 cursor-pointer"
-              onClick={simulateUpload}
+            <label 
+              className="border-2 border-dashed rounded-xl p-12 text-center hover:border-primary/50 transition-colors bg-muted/10 cursor-pointer block"
             >
+              <input type="file" className="hidden" accept=".pdf,.doc,.docx" onChange={handleFileUpload} />
               <div className="w-16 h-16 bg-primary/10 text-primary rounded-full flex items-center justify-center mx-auto mb-4">
                 <UploadCloud className="w-8 h-8" />
               </div>
               <h3 className="text-lg font-medium mb-1">Click to upload or drag and drop</h3>
               <p className="text-muted-foreground">Supported formats: PDF, DOCX, TXT</p>
-            </div>
+            </label>
           ) : (
             <div className="border rounded-xl p-12 text-center bg-muted/10">
               <RefreshCw className="w-12 h-12 text-primary mx-auto mb-4 animate-spin" />

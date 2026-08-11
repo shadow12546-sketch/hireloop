@@ -16,7 +16,7 @@ interface Candidate {
   avatar: string
 }
 
-const COLUMNS = ["Applied", "Screening", "Shortlisted", "Interview", "Offer", "Hired", "Rejected"]
+const COLUMNS = ["Applied", "Screening", "AI Pre-Screening", "Shortlisted", "Interview", "Offer", "Hired", "Rejected"]
 
 interface KanbanBoardProps {
   initialCandidates: Candidate[]

@@ -44,10 +44,10 @@ export function LandingNav() {
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 shrink-0">
           <div className="h-8 w-8 gradient-violet rounded-lg flex items-center justify-center">
-            <span className="text-white font-black text-sm">D</span>
+            <span className="text-white font-black text-sm">H</span>
           </div>
           <span className="font-extrabold text-xl text-foreground tracking-tight">
-            Dev<span className="text-primary">Fusion</span>
+            Hire<span className="text-primary">Loop</span>
           </span>
         </Link>
 

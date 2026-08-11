@@ -69,7 +69,6 @@ const employerNavGroups = [
     items: [
       { title: "Jobs", href: "/recruiter/jobs", icon: Briefcase },
       { title: "Candidates", href: "/recruiter/candidates", icon: Users },
-      { title: "Pipeline", href: "/recruiter/kanban", icon: Kanban },
       { title: "Interviews", href: "/recruiter/interviews", icon: Calendar },
       { title: "Assessments", href: "/recruiter/assessments", icon: Code2 },
       { title: "Offers", href: "/recruiter/offers", icon: Award },
@@ -106,10 +105,10 @@ export function Sidebar({ className, ...props }: SidebarProps) {
       <div className="h-16 flex items-center px-5 border-b shrink-0">
         <Link href="/" className="flex items-center gap-2">
           <div className="h-8 w-8 gradient-violet rounded-lg flex items-center justify-center shadow-sm">
-            <span className="text-white font-black text-sm">D</span>
+            <span className="text-white font-black text-sm">H</span>
           </div>
           <span className="font-extrabold text-base">
-            Dev<span className="text-primary">Fusion</span>
+            Hire<span className="text-primary">Loop</span>
           </span>
         </Link>
       </div>

@@ -183,7 +183,7 @@ const opportunities = [
   },
   {
     title: "AI Innovation Challenge 2026",
-    company: "DevFusion",
+    company: "HireLoop",
     location: "Online",
     salary: "₹5L Prize Pool",
     tags: ["AI/ML", "Full Stack", "Open to all"],
@@ -391,7 +391,7 @@ const testimonials = [
   {
     name: "Ananya Sharma",
     role: "Software Engineer @ Google",
-    text: "Got my dream job through DevFusion! The AI resume scoring helped me understand exactly what skills to highlight. The platform is incredibly easy to use.",
+    text: "Got my dream job through HireLoop! The AI resume scoring helped me understand exactly what skills to highlight. The platform is incredibly easy to use.",
     stars: 5,
     avatar: "A",
   },
@@ -405,7 +405,7 @@ const testimonials = [
   {
     name: "Priya Nair",
     role: "Full Stack Intern @ Flipkart",
-    text: "Won a hackathon through DevFusion which directly led to my internship offer. The coding assessment environment is smooth and fair.",
+    text: "Won a hackathon through HireLoop which directly led to my internship offer. The coding assessment environment is smooth and fair.",
     stars: 5,
     avatar: "P",
   },
@@ -471,7 +471,7 @@ export function CTASection() {
           Your next opportunity<br />starts here. 🚀
         </h2>
         <p className="mt-4 text-lg text-white/80 max-w-xl mx-auto">
-          Join 5 lakh+ students and professionals already using DevFusion to find
+          Join 5 lakh+ students and professionals already using HireLoop to find
           jobs, win competitions, and grow their careers.
         </p>
         <div className="mt-10 flex flex-wrap justify-center gap-4">
@@ -520,10 +520,10 @@ export function Footer() {
                 className="h-8 w-8 rounded-lg flex items-center justify-center"
                 style={{ background: "linear-gradient(135deg, #251c4eff 0%, #767afeff 100%)" }}
               >
-                <span className="text-white font-black text-sm">D</span>
+                <span className="text-white font-black text-sm">H</span>
               </div>
               <span className="font-extrabold text-xl text-foreground">
-                Dev<span className="text-primary">Fusion</span>
+                Hire<span className="text-primary">Loop</span>
               </span>
             </div>
             <p className="text-sm text-muted-foreground max-w-xs">
@@ -561,7 +561,7 @@ export function Footer() {
         </div>
 
         <div className="border-t border-border pt-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
-          <p>© 2026 DevFusion ATS · Built for DevFusion 4.0 Hackathon (PS-2)</p>
+          <p>© 2026 HireLoop ATS · Built for HireLoop 4.0 Hackathon (PS-2)</p>
           <p>
             Made with ♥ by{" "}
             <span className="text-primary font-semibold">Sachin</span>,{" "}

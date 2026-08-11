@@ -148,7 +148,7 @@ export default function EmployerVerificationPage() {
         {status === "rejected" && (
           <Button className="w-full h-11" render={<Link href="/register?role=employer" />}>Re-apply for Verification</Button>
         )}
-        <a href="mailto:support@devfusion.io" className="w-full">
+        <a href="mailto:support@hireloop.io" className="w-full">
           <Button variant="outline" className="w-full h-10 gap-2">
             <Mail className="h-4 w-4" /> Contact Support
           </Button>

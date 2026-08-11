@@ -1,0 +1,15 @@
+John Doe
+Software Engineer
+Email: john.doe@mock.com
+Phone: +1 234 567 890
+
+SKILLS
+React, Node.js, Typescript, AI Integration
+
+EXPERIENCE
+Frontend Developer, Tech Corp (2021-Present)
+- Built user interfaces using React and TailwindCSS.
+- Integrated AI backend endpoints.
+
+EDUCATION
+B.S. in Computer Science, State University (2020)

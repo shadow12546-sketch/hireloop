@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "DevFusion ATS — AI-Powered Recruitment Platform",
+  title: "HireLoop — AI-Powered Recruitment Platform",
   description:
     "Streamline your hiring with AI-powered resume analysis, smart candidate matching, coding assessments, and a complete applicant tracking system.",
 }

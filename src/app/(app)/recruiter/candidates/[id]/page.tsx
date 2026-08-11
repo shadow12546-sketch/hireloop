@@ -7,12 +7,53 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ChevronLeft, UserCircle, Download, FileText, Calendar, CheckCircle2, MessageSquare, Award, AlertCircle } from "lucide-react"
+import { Progress } from "@/components/ui/progress"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog"
+import {
+  ChevronLeft, Download, FileText, CheckCircle2, MessageSquare, AlertCircle,
+  Loader2, Lock, FileDown, User, Package, Brain, ThumbsUp, XCircle, Clock, Award
+} from "lucide-react"
+import { aiService } from "@/services/aiService"
+
+const ALLOWED_DOWNLOAD_STATUSES = ["Shortlisted", "Assessment", "Interview", "Offer", "Hired"]
+const DECISION_STATUSES = ["Shortlisted", "Assessment", "Interview", "Offer", "Hired", "Rejected"]
+
+/** Derive the AI workflow stage statuses from the candidate's current status */
+function getWorkflowStages(status: string) {
+  const order = ["Applied", "Screening", "AI Pre-Screening", "Shortlisted", "Assessment", "Interview", "Offer", "Hired", "Rejected"]
+  const idx = order.indexOf(status)
+  return [
+    { key: "resume",    label: "AI Resume Screening",  done: idx >= 2 },
+    { key: "assess",    label: "AI Assessment",         done: idx >= 4 },
+    { key: "interview", label: "AI Interview",           done: idx >= 5 },
+    { key: "eval",      label: "AI Evaluation",          done: idx >= 5 },
+    { key: "decision",  label: "Employer Decision",      done: idx >= 6 || status === "Rejected" },
+  ]
+}
 
 export default function CandidateProfileView({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params)
   const [candidate, setCandidate] = useState<any>(null)
+  const [matchDetails, setMatchDetails] = useState<any>(null)
+  const [matchError, setMatchError] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [showDownloadModal, setShowDownloadModal] = useState(false)
+  const [downloadingResume, setDownloadingResume] = useState(false)
+  const [downloadingProfile, setDownloadingProfile] = useState(false)
+  const [downloadingPackage, setDownloadingPackage] = useState(false)
+  const [downloadError, setDownloadError] = useState<string | null>(null)
+  // Select / Reject decision state
+  const [showSelectDialog, setShowSelectDialog] = useState(false)
+  const [showRejectDialog, setShowRejectDialog] = useState(false)
+  const [deciding, setDeciding] = useState(false)
+  const [decisionMade, setDecisionMade] = useState<"Selected" | "Rejected" | null>(null)
 
   useEffect(() => {
     async function load() {
@@ -22,9 +63,84 @@ export default function CandidateProfileView({ params }: { params: Promise<{ id:
       } finally {
         setLoading(false)
       }
+      
+      try {
+        const matchData = await aiService.getMatchScore(resolvedParams.id)
+        setMatchDetails(matchData)
+      } catch (err) {
+        setMatchError(true)
+      }
     }
     load()
   }, [resolvedParams.id])
+
+  const canDownload = candidate ? ALLOWED_DOWNLOAD_STATUSES.includes(candidate.status) : false
+  const canDecide   = candidate ? DECISION_STATUSES.includes(candidate.status) : false
+  const alreadyDecided = decisionMade || (candidate?.status === "Hired") || (candidate?.status === "Rejected")
+
+  async function handleSelect() {
+    setDeciding(true)
+    try {
+      await new Promise(r => setTimeout(r, 800))
+      setDecisionMade("Selected")
+      setCandidate((prev: any) => ({ ...prev, status: "Hired" }))
+    } finally {
+      setDeciding(false)
+      setShowSelectDialog(false)
+    }
+  }
+
+  async function handleReject() {
+    setDeciding(true)
+    try {
+      await new Promise(r => setTimeout(r, 800))
+      setDecisionMade("Rejected")
+      setCandidate((prev: any) => ({ ...prev, status: "Rejected" }))
+    } finally {
+      setDeciding(false)
+      setShowRejectDialog(false)
+    }
+  }
+
+  async function handleDownloadResume() {
+    if (downloadingResume) return
+    setDownloadError(null)
+    setDownloadingResume(true)
+    try {
+      await candidateService.downloadResume(resolvedParams.id, candidate.name)
+    } catch {
+      setDownloadError("Unable to download the resume. Please try again.")
+    } finally {
+      setDownloadingResume(false)
+    }
+  }
+
+
+  async function handleDownloadProfile() {
+    if (downloadingProfile) return
+    setDownloadError(null)
+    setDownloadingProfile(true)
+    try {
+      await candidateService.downloadCandidateProfile(resolvedParams.id, candidate)
+    } catch {
+      setDownloadError("Unable to download the candidate profile. Please try again.")
+    } finally {
+      setDownloadingProfile(false)
+    }
+  }
+
+  async function handleDownloadPackage() {
+    if (downloadingPackage) return
+    setDownloadError(null)
+    setDownloadingPackage(true)
+    try {
+      await candidateService.downloadCandidatePackage(resolvedParams.id, candidate.name)
+    } catch {
+      setDownloadError("Unable to download the candidate package. Please try again.")
+    } finally {
+      setDownloadingPackage(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -47,45 +163,89 @@ export default function CandidateProfileView({ params }: { params: Promise<{ id:
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in duration-500 pb-12">
-      <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-        <div>
-          <Link href="/recruiter/candidates" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors mb-4">
-            <ChevronLeft className="w-4 h-4 mr-1" /> Back to Database
-          </Link>
-          <div className="flex items-center gap-4 mb-2">
-            <div className="w-16 h-16 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-2xl">
+      <div>
+        <Link href="/recruiter/candidates" className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-foreground transition-colors mb-4">
+          <ChevronLeft className="w-4 h-4 mr-1" /> Back to Candidates
+        </Link>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-card p-6 rounded-xl border shadow-sm">
+          <div className="flex items-center gap-5">
+            <div className="w-16 h-16 rounded-full gradient-violet text-white flex items-center justify-center font-bold text-2xl shrink-0 shadow-inner">
               {candidate.avatar}
             </div>
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">{candidate.name}</h1>
-              <p className="text-lg text-muted-foreground">{candidate.role}</p>
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">{candidate.name}</h1>
+              <div className="flex flex-wrap items-center gap-3 mt-1.5 text-sm text-muted-foreground">
+                <span className="font-medium text-foreground/80">{candidate.role}</span>
+                <span className="w-1 h-1 rounded-full bg-border"></span>
+                <span>Applied {new Date(candidate.appliedDate).toLocaleDateString()}</span>
+                <span className="w-1 h-1 rounded-full bg-border"></span>
+                <Badge variant="secondary" className="font-medium bg-primary/10 text-primary hover:bg-primary/20 border-0">
+                  {candidate.status}
+                </Badge>
+              </div>
             </div>
           </div>
-        </div>
-        
-        <div className="flex flex-col items-end gap-2">
-          <Badge variant="outline" className="text-sm py-1 bg-primary/5 text-primary border-primary/20">
-            Status: {candidate.status}
-          </Badge>
-          <div className="flex items-center gap-2 mt-2">
-            <Button variant="outline" className="gap-2">
+          
+          <div className="flex flex-wrap items-center gap-3 w-full md:w-auto mt-4 md:mt-0">
+            <Button variant="outline" className="flex-1 md:flex-none gap-2 shadow-sm">
               <MessageSquare className="w-4 h-4" /> Message
             </Button>
-            <Button className="gap-2 bg-green-600 hover:bg-green-700 text-white" render={<Link href="/recruiter/offers" />}>
-              <Award className="w-4 h-4" /> Extend Offer
-            </Button>
+            {canDownload ? (
+              <Button
+                variant="outline"
+                className="flex-1 md:flex-none gap-2 shadow-sm border-primary/30 text-primary hover:bg-primary/5 hover:border-primary/50"
+                onClick={() => { setDownloadError(null); setShowDownloadModal(true) }}
+              >
+                <Download className="w-4 h-4" /> Download Data
+              </Button>
+            ) : (
+              <Button variant="outline" disabled title="Available after candidate is shortlisted"
+                className="flex-1 md:flex-none gap-2 shadow-sm opacity-50 cursor-not-allowed">
+                <Lock className="w-3.5 h-3.5" /> Download Data
+              </Button>
+            )}
+            {alreadyDecided ? (
+              <Badge
+                variant="secondary"
+                className={`px-4 py-2 text-sm font-semibold ${
+                  decisionMade === "Selected" || candidate?.status === "Hired"
+                    ? "bg-green-500/15 text-green-700 dark:text-green-400"
+                    : "bg-red-500/15 text-red-700 dark:text-red-400"
+                }`}
+              >
+                {decisionMade === "Selected" || candidate?.status === "Hired" ? "✓ Selected" : "✗ Rejected"}
+              </Badge>
+            ) : (
+              <>
+                <Button
+                  className="flex-1 md:flex-none gap-2 shadow-sm bg-green-600 hover:bg-green-700 text-white"
+                  disabled={!canDecide}
+                  onClick={() => setShowSelectDialog(true)}
+                >
+                  <ThumbsUp className="w-4 h-4" /> Select Candidate
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-1 md:flex-none gap-2 shadow-sm border-red-300 text-red-600 hover:bg-red-500/5 hover:border-red-400"
+                  disabled={!canDecide}
+                  onClick={() => setShowRejectDialog(true)}
+                >
+                  <XCircle className="w-4 h-4" /> Reject
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2">
-          <Tabs defaultValue="profile">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="profile">Profile</TabsTrigger>
-              <TabsTrigger value="resume">Resume</TabsTrigger>
-              <TabsTrigger value="evaluations">Evaluations</TabsTrigger>
-              <TabsTrigger value="feedback">Feedback</TabsTrigger>
+      <div className="flex flex-col lg:flex-row gap-8">
+        <div className="flex-1 min-w-0">
+          <Tabs defaultValue="profile" className="flex flex-col w-full">
+            <TabsList className="flex w-full justify-start gap-8 border-b border-border/60 bg-transparent p-0 rounded-none h-auto overflow-x-auto overflow-y-hidden scrollbar-none">
+              <TabsTrigger value="profile" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none py-3 px-1 text-sm font-medium transition-colors text-muted-foreground hover:text-foreground data-[state=active]:text-foreground">Profile</TabsTrigger>
+              <TabsTrigger value="resume" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none py-3 px-1 text-sm font-medium transition-colors text-muted-foreground hover:text-foreground data-[state=active]:text-foreground">Resume</TabsTrigger>
+              <TabsTrigger value="evaluations" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none py-3 px-1 text-sm font-medium transition-colors text-muted-foreground hover:text-foreground data-[state=active]:text-foreground">Evaluations</TabsTrigger>
+              <TabsTrigger value="feedback" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none py-3 px-1 text-sm font-medium transition-colors text-muted-foreground hover:text-foreground data-[state=active]:text-foreground">Feedback</TabsTrigger>
             </TabsList>
             
             <TabsContent value="profile" className="space-y-6 mt-6">
@@ -101,57 +261,131 @@ export default function CandidateProfileView({ params }: { params: Promise<{ id:
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="flex items-center gap-6 p-4 bg-background rounded-xl border">
-                    <div className="w-20 h-20 shrink-0 rounded-full border-4 border-primary/20 flex items-center justify-center relative">
-                      <div className="absolute inset-0 border-4 border-primary rounded-full" style={{ clipPath: `polygon(0 0, 100% 0, 100% ${100 - candidate.matchScore}%, 0 ${100 - candidate.matchScore}%)`, transform: 'rotate(-90deg)' }} />
-                      <span className="text-2xl font-bold text-primary">{candidate.matchScore}%</span>
+                <CardContent className="space-y-8">
+                  {matchError ? (
+                    <div className="p-6 flex flex-col items-center justify-center text-center space-y-3 bg-red-500/5 rounded-xl border border-red-500/10 text-red-600 dark:text-red-400">
+                      <AlertCircle className="w-8 h-8" />
+                      <div>
+                        <h4 className="font-semibold">AI temporarily unavailable</h4>
+                        <p className="text-sm opacity-90 mt-1">Please retry loading the candidate match details.</p>
+                      </div>
+                      <Button variant="outline" size="sm" onClick={() => window.location.reload()} className="mt-2 text-foreground">Retry</Button>
                     </div>
-                    <div>
-                      <h4 className="font-bold text-lg mb-1">Strong Match</h4>
-                      <p className="text-sm text-muted-foreground">This candidate strongly aligns with the core requirements of the job description. They have the required experience level and technical foundation.</p>
-                    </div>
-                  </div>
+                  ) : (
+                    <>
+                      <div className="flex flex-col xl:flex-row items-center xl:items-start gap-8 p-6 bg-background rounded-xl border">
+                        <div className="flex flex-col items-center justify-center space-y-3 shrink-0">
+                          <div className="w-24 h-24 rounded-full border-4 border-primary/20 flex items-center justify-center relative">
+                            <div className="absolute inset-0 border-4 border-primary rounded-full" style={{ clipPath: `polygon(0 0, 100% 0, 100% ${100 - (matchDetails?.matchScore || candidate.matchScore)}%, 0 ${100 - (matchDetails?.matchScore || candidate.matchScore)}%)`, transform: 'rotate(-90deg)' }} />
+                            <span className="text-3xl font-bold text-primary">{matchDetails?.matchScore || candidate.matchScore}%</span>
+                          </div>
+                          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Overall Match</span>
+                        </div>
+                        <div className="flex-1 w-full grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5 pt-1">
+                          {matchDetails?.breakdown ? (
+                            <>
+                              <div className="space-y-2"><div className="flex justify-between text-sm font-medium"><span>Skills</span><span>{matchDetails.breakdown.skillMatch}%</span></div><Progress value={matchDetails.breakdown.skillMatch} className="h-2" /></div>
+                              <div className="space-y-2"><div className="flex justify-between text-sm font-medium"><span>Experience</span><span>{matchDetails.breakdown.experienceMatch}%</span></div><Progress value={matchDetails.breakdown.experienceMatch} className="h-2" /></div>
+                              <div className="space-y-2"><div className="flex justify-between text-sm font-medium"><span>Education</span><span>{matchDetails.breakdown.educationMatch}%</span></div><Progress value={matchDetails.breakdown.educationMatch} className="h-2" /></div>
+                              <div className="space-y-2"><div className="flex justify-between text-sm font-medium"><span>Projects</span><span>{matchDetails.breakdown.projectMatch}%</span></div><Progress value={matchDetails.breakdown.projectMatch} className="h-2" /></div>
+                            </>
+                          ) : (
+                            <div className="col-span-1 sm:col-span-2 flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="w-4 h-4 animate-spin" /> Analyzing breakdown...</div>
+                          )}
+                        </div>
+                      </div>
 
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    <div className="space-y-3">
-                      <h5 className="font-semibold text-sm flex items-center gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-green-500" /> Key Strengths
-                      </h5>
-                      <ul className="text-sm space-y-2 text-muted-foreground list-disc pl-5">
-                        <li>Extensive experience in the required tech stack</li>
-                        <li>Demonstrated leadership in previous roles</li>
-                        <li>Relevant industry background</li>
-                      </ul>
-                    </div>
-                    <div className="space-y-3">
-                      <h5 className="font-semibold text-sm flex items-center gap-2">
-                        <AlertCircle className="w-4 h-4 text-amber-500" /> Potential Gaps
-                      </h5>
-                      <ul className="text-sm space-y-2 text-muted-foreground list-disc pl-5">
-                        <li>Slightly under expected years of management experience</li>
-                        <li>Missing specific certification mentioned as 'nice to have'</li>
-                      </ul>
-                    </div>
-                  </div>
-                  
-                  <div className="p-4 bg-primary/10 rounded-lg text-sm border border-primary/20">
-                    <strong>AI Recommendation:</strong> Move forward to technical screening. Focus interview questions on their management experience to gauge readiness for team leadership.
-                  </div>
+                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div className="space-y-3 bg-green-500/5 border border-green-500/10 p-5 rounded-xl">
+                          <h5 className="font-semibold text-sm flex items-center gap-2 text-green-700 dark:text-green-400">
+                            <CheckCircle2 className="w-4 h-4" /> Key Strengths
+                          </h5>
+                          {matchDetails?.strengths ? (
+                            <ul className="text-sm space-y-2 text-muted-foreground list-disc pl-4 marker:text-green-500">
+                              {matchDetails.strengths.map((s: string, i: number) => <li key={i}>{s}</li>)}
+                            </ul>
+                          ) : (
+                            <div className="text-sm text-muted-foreground animate-pulse flex items-center gap-2"><Loader2 className="w-3 h-3 animate-spin"/> Loading...</div>
+                          )}
+                        </div>
+                        <div className="space-y-3 bg-red-500/5 border border-red-500/10 p-5 rounded-xl">
+                          <h5 className="font-semibold text-sm flex items-center gap-2 text-red-700 dark:text-red-400">
+                            <AlertCircle className="w-4 h-4" /> Missing Skills
+                          </h5>
+                          {matchDetails?.missingSkills ? (
+                            <ul className="text-sm space-y-2 text-muted-foreground list-disc pl-4 marker:text-red-500">
+                              {matchDetails.missingSkills.map((m: string, i: number) => <li key={i}>{m}</li>)}
+                            </ul>
+                          ) : (
+                            <div className="text-sm text-muted-foreground animate-pulse flex items-center gap-2"><Loader2 className="w-3 h-3 animate-spin"/> Loading...</div>
+                          )}
+                        </div>
+                        <div className="space-y-3 bg-amber-500/5 border border-amber-500/10 p-5 rounded-xl">
+                          <h5 className="font-semibold text-sm flex items-center gap-2 text-amber-700 dark:text-amber-400">
+                            <AlertCircle className="w-4 h-4" /> Potential Gaps
+                          </h5>
+                          {matchDetails?.weakAreas ? (
+                            <ul className="text-sm space-y-2 text-muted-foreground list-disc pl-4 marker:text-amber-500">
+                              {matchDetails.weakAreas.map((w: string, i: number) => <li key={i}>{w}</li>)}
+                            </ul>
+                          ) : (
+                            <div className="text-sm text-muted-foreground animate-pulse flex items-center gap-2"><Loader2 className="w-3 h-3 animate-spin"/> Loading...</div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="p-5 bg-primary/10 rounded-xl text-sm border border-primary/20">
+                        <strong className="text-primary block mb-1 text-base">AI Recommendation</strong> 
+                        <span className="text-muted-foreground leading-relaxed">
+                          {matchDetails?.recommendation || "Loading recommendation..."}
+                        </span>
+                      </div>
+                    </>
+                  )}
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Experience Summary</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">
-                    Candidate has {candidate.experience} of experience relevant to the role. 
-                    Detailed extraction is available in the Resume tab.
-                  </p>
-                </CardContent>
-              </Card>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+                <Card className="border-border shadow-sm">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base font-semibold text-foreground">Personal Information</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-1">
+                      <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Email</div>
+                      <div className="text-sm font-medium text-foreground">{candidate.email || "contact@candidate.com"}</div>
+                    </div>
+                    <div className="space-y-1">
+                      <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Phone</div>
+                      <div className="text-sm font-medium text-foreground">{candidate.phone || "+1 234 567 890"}</div>
+                    </div>
+                    <div className="space-y-1">
+                      <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Location</div>
+                      <div className="text-sm font-medium text-foreground">{candidate.location || "San Francisco, CA"}</div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-border shadow-sm">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base font-semibold text-foreground">Professional Information</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-1">
+                      <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Experience</div>
+                      <div className="text-sm font-medium text-foreground">{candidate.experience}</div>
+                    </div>
+                    <div className="space-y-1">
+                      <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Skills</div>
+                      <div className="text-sm font-medium text-foreground">{candidate.skills ? candidate.skills.join(", ") : "React, TypeScript, Next.js, Node.js"}</div>
+                    </div>
+                    <div className="space-y-1">
+                      <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Education</div>
+                      <div className="text-sm font-medium text-foreground">{candidate.education || "B.S. Computer Science"}</div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
 
             <TabsContent value="resume" className="mt-6">
@@ -220,46 +454,312 @@ export default function CandidateProfileView({ params }: { params: Promise<{ id:
           </Tabs>
         </div>
 
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick Details</CardTitle>
+        <div className="w-full lg:w-[320px] shrink-0 space-y-6">
+          {/* Quick Details */}
+          <Card className="border-border shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-semibold">Quick Details</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4 text-sm">
-              <div className="flex justify-between border-b pb-2">
+            <CardContent className="space-y-3.5 text-sm">
+              <div className="flex justify-between items-center border-b border-border/50 pb-2.5">
                 <span className="text-muted-foreground">Email</span>
-                <span className="font-medium">contact@candidate.com</span>
+                <span className="font-medium">{candidate.email || "contact@candidate.com"}</span>
               </div>
-              <div className="flex justify-between border-b pb-2">
+              <div className="flex justify-between items-center border-b border-border/50 pb-2.5">
                 <span className="text-muted-foreground">Phone</span>
-                <span className="font-medium">+1 234 567 890</span>
+                <span className="font-medium">{candidate.phone || "+1 234 567 890"}</span>
               </div>
-              <div className="flex justify-between border-b pb-2">
+              <div className="flex justify-between items-center border-b border-border/50 pb-2.5">
                 <span className="text-muted-foreground">Location</span>
-                <span className="font-medium">San Francisco, CA</span>
+                <span className="font-medium">{candidate.location || "San Francisco, CA"}</span>
               </div>
-              <div className="flex justify-between pb-2">
+              <div className="flex justify-between items-center pb-1">
                 <span className="text-muted-foreground">Experience</span>
                 <span className="font-medium">{candidate.experience}</span>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Pipeline Actions</CardTitle>
+          {/* AI Recruitment Workflow Status */}
+          <Card className="border-border shadow-sm">
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-2">
+                <Brain className="w-4 h-4 text-primary" />
+                <CardTitle className="text-base font-semibold">AI Recruitment Process</CardTitle>
+              </div>
+              <CardDescription className="text-xs">Automated evaluation by HireLoop AI</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Button variant="outline" className="w-full justify-start gap-2" render={<Link href="/recruiter/interviews" />}>
-                <Calendar className="w-4 h-4" /> Schedule Interview
-              </Button>
-              <Button variant="outline" className="w-full justify-start gap-2" render={<Link href="/recruiter/assessments" />}>
-                <FileText className="w-4 h-4" /> Assign Assessment
-              </Button>
+              {getWorkflowStages(candidate.status).map((stage, i) => (
+                <div key={stage.key} className="flex items-center gap-3">
+                  {stage.key === "decision" ? (
+                    stage.done ? (
+                      <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
+                    ) : (
+                      <div className="w-4 h-4 rounded-full border-2 border-muted-foreground/40 shrink-0" />
+                    )
+                  ) : stage.done ? (
+                    <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
+                  ) : (
+                    <Clock className="w-4 h-4 text-muted-foreground/50 shrink-0" />
+                  )}
+                  <span className={`text-sm ${
+                    stage.done ? "text-foreground font-medium" : "text-muted-foreground"
+                  }`}>{stage.label}</span>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+
+          {/* Employer Final Decision */}
+          <Card className="border-primary/20 bg-primary/5 shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-semibold">Employer Decision</CardTitle>
+              <CardDescription className="text-xs">
+                AI recommendation:{" "}
+                <span className="font-semibold text-foreground">
+                  {matchDetails?.recommendation ? "Strong Candidate" : "Pending evaluation"}
+                </span>
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {alreadyDecided ? (
+                <div className={`text-center py-3 px-4 rounded-xl font-semibold text-sm ${
+                  decisionMade === "Selected" || candidate.status === "Hired"
+                    ? "bg-green-500/10 text-green-700 dark:text-green-400"
+                    : "bg-red-500/10 text-red-700 dark:text-red-400"
+                }`}>
+                  {decisionMade === "Selected" || candidate.status === "Hired"
+                    ? "✓ Candidate Selected"
+                    : "✗ Candidate Rejected"}
+                </div>
+              ) : (
+                <>
+                  <Button
+                    className="w-full gap-2 bg-green-600 hover:bg-green-700 text-white shadow-sm"
+                    disabled={!canDecide}
+                    onClick={() => setShowSelectDialog(true)}
+                  >
+                    <ThumbsUp className="w-4 h-4" /> Select Candidate
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full gap-2 border-red-300 text-red-600 hover:bg-red-500/5 hover:border-red-400 shadow-sm"
+                    disabled={!canDecide}
+                    onClick={() => setShowRejectDialog(true)}
+                  >
+                    <XCircle className="w-4 h-4" /> Reject Candidate
+                  </Button>
+                  {!canDecide && (
+                    <p className="text-xs text-muted-foreground text-center">
+                      Available after AI evaluation is complete.
+                    </p>
+                  )}
+                </>
+              )}
             </CardContent>
           </Card>
         </div>
       </div>
+
+      {/* ============ SELECT CANDIDATE CONFIRMATION ============ */}
+      <Dialog open={showSelectDialog} onOpenChange={setShowSelectDialog}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2.5">
+              <div className="p-2 bg-green-500/10 rounded-lg">
+                <ThumbsUp className="w-4 h-4 text-green-600 dark:text-green-400" />
+              </div>
+              Select Candidate?
+            </DialogTitle>
+            <DialogDescription>
+              You are about to select{" "}
+              <span className="font-semibold text-foreground">{candidate.name}</span>{" "}
+              for the position of{" "}
+              <span className="font-semibold text-foreground">{candidate.role}</span>.
+              This will move them to <strong>Hired</strong> status.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowSelectDialog(false)} disabled={deciding}>
+              Cancel
+            </Button>
+            <Button
+              className="bg-green-600 hover:bg-green-700 text-white gap-2"
+              onClick={handleSelect}
+              disabled={deciding}
+            >
+              {deciding ? <Loader2 className="w-4 h-4 animate-spin" /> : <ThumbsUp className="w-4 h-4" />}
+              {deciding ? "Selecting..." : "Confirm Selection"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ============ REJECT CANDIDATE CONFIRMATION ============ */}
+      <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2.5">
+              <div className="p-2 bg-red-500/10 rounded-lg">
+                <XCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
+              </div>
+              Reject Candidate?
+            </DialogTitle>
+            <DialogDescription>
+              This candidate will be marked as <strong>Rejected</strong>.{" "}
+              <span className="font-semibold text-foreground">{candidate.name}</span>{" "}
+              will no longer be considered for this position.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowRejectDialog(false)} disabled={deciding}>
+              Cancel
+            </Button>
+            <Button
+              variant="outline"
+              className="border-red-300 text-red-600 hover:bg-red-500/5 gap-2"
+              onClick={handleReject}
+              disabled={deciding}
+            >
+              {deciding ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
+              {deciding ? "Rejecting..." : "Reject Candidate"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ============ DOWNLOAD CANDIDATE DATA MODAL ============ */}
+      <Dialog open={showDownloadModal} onOpenChange={setShowDownloadModal}>
+
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2.5 text-lg">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <Download className="w-4 h-4 text-primary" />
+              </div>
+              Download Candidate Data
+            </DialogTitle>
+            <DialogDescription>
+              Download documents and profile information for{" "}
+              <span className="font-medium text-foreground">{candidate.name}</span>.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 pt-2">
+            {/* Error Alert */}
+            {downloadError && (
+              <div className="flex items-start gap-3 p-3.5 bg-red-500/5 border border-red-500/20 rounded-lg text-sm text-red-600 dark:text-red-400">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p>{downloadError}</p>
+                  <button
+                    className="underline underline-offset-2 text-xs mt-1 hover:no-underline"
+                    onClick={() => setDownloadError(null)}
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Resume */}
+            <div className="flex items-center justify-between p-4 border border-border rounded-xl hover:bg-muted/30 transition-colors">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-500/10 rounded-lg shrink-0">
+                  <FileDown className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <p className="font-medium text-sm">Resume</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">PDF/DOCX submitted by candidate</p>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5 shrink-0 ml-3"
+                disabled={downloadingResume || downloadingPackage}
+                onClick={handleDownloadResume}
+              >
+                {downloadingResume ? (
+                  <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Downloading...</>
+                ) : (
+                  <><Download className="w-3.5 h-3.5" /> Download</>
+                )}
+              </Button>
+            </div>
+
+            {/* Candidate Profile */}
+            <div className="flex items-center justify-between p-4 border border-border rounded-xl hover:bg-muted/30 transition-colors">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-green-500/10 rounded-lg shrink-0">
+                  <User className="w-4 h-4 text-green-600 dark:text-green-400" />
+                </div>
+                <div>
+                  <p className="font-medium text-sm">Candidate Profile</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Personal + professional information</p>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5 shrink-0 ml-3"
+                disabled={downloadingProfile || downloadingPackage}
+                onClick={handleDownloadProfile}
+              >
+                {downloadingProfile ? (
+                  <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Downloading...</>
+                ) : (
+                  <><Download className="w-3.5 h-3.5" /> Download</>
+                )}
+              </Button>
+            </div>
+
+            {/* Uploaded Documents — Empty state */}
+            <div className="p-4 border border-border rounded-xl bg-muted/10">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-amber-500/10 rounded-lg shrink-0">
+                  <FileText className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                </div>
+                <div>
+                  <p className="font-medium text-sm">Uploaded Documents</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Certificates, portfolio, cover letter</p>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground pl-11 italic">No additional documents uploaded.</p>
+            </div>
+
+            {/* Complete Package */}
+            <div className="flex items-center justify-between p-4 bg-primary/5 border border-primary/20 rounded-xl">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-lg shrink-0">
+                  <Package className="w-4 h-4 text-primary" />
+                </div>
+                <div>
+                  <p className="font-medium text-sm">Complete Package</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Resume + profile + permitted documents</p>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                className="gap-1.5 shrink-0 ml-3"
+                disabled={downloadingPackage || downloadingResume || downloadingProfile}
+                onClick={handleDownloadPackage}
+              >
+                {downloadingPackage ? (
+                  <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Packaging...</>
+                ) : (
+                  <><Download className="w-3.5 h-3.5" /> Download All</>
+                )}
+              </Button>
+            </div>
+          </div>
+
+          <p className="text-[11px] text-muted-foreground pt-1 border-t border-border mt-1">
+            Downloads are subject to employer authorization. All accesses are logged for compliance.
+          </p>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

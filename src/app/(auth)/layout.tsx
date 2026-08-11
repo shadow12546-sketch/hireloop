@@ -39,9 +39,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 relative z-10 w-max">
           <div className="h-9 w-9 bg-white/10 border border-white/20 rounded-xl flex items-center justify-center shadow-inner">
-            <span className="text-white font-black text-base">D</span>
+            <span className="text-white font-black text-base">H</span>
           </div>
-          <span className="font-extrabold text-xl text-white tracking-tight">Dev<span className="opacity-80">Fusion</span></span>
+          <span className="font-extrabold text-xl text-white tracking-tight">HireLoop</span>
         </Link>
 
         {/* Enterprise Messaging */}
@@ -75,7 +75,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
         {/* Footer / Trust signal */}
         <div className="relative z-10 flex items-center justify-between pt-6">
-          <p className="text-white/40 text-sm font-medium">© {new Date().getFullYear()} DevFusion Inc.</p>
+          <p className="text-white/40 text-sm font-medium">© {new Date().getFullYear()} HireLoop Inc.</p>
         </div>
       </div>
 
@@ -85,10 +85,10 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           {/* Mobile logo */}
           <Link href="/" className="flex items-center gap-2 mb-10 lg:hidden">
             <div className="h-8 w-8 rounded-lg flex items-center justify-center" style={{ background: "linear-gradient(135deg, #251c4e 0%, #767afe 100%)" }}>
-              <span className="text-white font-black text-sm">D</span>
+              <span className="text-white font-black text-sm">H</span>
             </div>
             <span className="font-extrabold text-xl tracking-tight">
-              Dev<span className="text-primary">Fusion</span>
+              HireLoop
             </span>
           </Link>
 

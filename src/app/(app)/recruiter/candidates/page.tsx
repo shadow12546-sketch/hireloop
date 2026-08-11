@@ -44,10 +44,24 @@ function RowSkeleton() {
   )
 }
 
+const PIPELINE_STAGES = [
+  "All",
+  "Applied",
+  "Screening",
+  "AI Pre-Screening",
+  "Shortlisted",
+  "Assessment",
+  "Interview",
+  "Offer",
+  "Hired",
+  "Rejected"
+]
+
 export default function CandidatesList() {
   const [candidates, setCandidates] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
+  const [statusFilter, setStatusFilter] = useState("All")
 
   useEffect(() => {
     async function load() {
@@ -61,10 +75,11 @@ export default function CandidatesList() {
     load()
   }, [])
 
-  const filteredCandidates = candidates.filter(c =>
-    c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    c.role.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const filteredCandidates = candidates.filter(c => {
+    const matchesSearch = c.name.toLowerCase().includes(searchTerm.toLowerCase()) || c.role.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesStatus = statusFilter === "All" || c.status === statusFilter
+    return matchesSearch && matchesStatus
+  })
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-12">
@@ -76,7 +91,7 @@ export default function CandidatesList() {
       </div>
 
       <Card>
-        <CardHeader className="pb-4">
+        <CardHeader className="pb-4 space-y-4">
           <div className="flex flex-col sm:flex-row justify-between gap-4">
             <CardTitle className="text-lg">All Candidates</CardTitle>
             <div className="flex gap-2">
@@ -89,10 +104,23 @@ export default function CandidatesList() {
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
-              <Button variant="outline" size="icon" title="Filters">
-                <SlidersHorizontal className="h-4 w-4" />
-              </Button>
             </div>
+          </div>
+
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+            {PIPELINE_STAGES.map(stage => (
+              <button
+                key={stage}
+                onClick={() => setStatusFilter(stage)}
+                className={`whitespace-nowrap px-3 py-1.5 text-sm font-medium rounded-full transition-colors ${
+                  statusFilter === stage 
+                    ? "bg-primary text-primary-foreground shadow-sm" 
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                }`}
+              >
+                {stage}
+              </button>
+            ))}
           </div>
         </CardHeader>
         <CardContent className="p-0">
