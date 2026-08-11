@@ -1,0 +1,26 @@
+{
+  "name": "project-hireloop",
+  "version": "1.0.0",
+  "description": "DevFusion 4.0 — PS-2 — HRTech · AI · SaaS",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shadow12546-sketch/hireloop.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/shadow12546-sketch/hireloop/issues"
+  },
+  "homepage": "https://github.com/shadow12546-sketch/hireloop#readme",
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1"
+  }
+}
