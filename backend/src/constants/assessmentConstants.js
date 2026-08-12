@@ -1,0 +1,18 @@
+const ASSESSMENT_ATTEMPT_STATUS = Object.freeze({
+  ASSIGNED: 'ASSIGNED',
+  IN_PROGRESS: 'IN_PROGRESS',
+  SUBMITTED: 'SUBMITTED',
+  EXPIRED: 'EXPIRED',
+});
+
+const QUESTION_TYPE = Object.freeze({
+  MCQ: 'mcq',
+  SHORT_ANSWER: 'short_answer',
+  CODING: 'coding',
+});
+
+module.exports = {
+  ASSESSMENT_ATTEMPT_STATUS,
+  ALL_ASSESSMENT_ATTEMPT_STATUSES: Object.values(ASSESSMENT_ATTEMPT_STATUS),
+  QUESTION_TYPE,
+};
