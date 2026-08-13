@@ -1,0 +1,32 @@
+{
+  "mcqs": [
+    { "id": "mcq_js_1", "skill": "javascript", "question": "What is the output of typeof null in JavaScript?", "options": ["null", "undefined", "object", "boolean"], "correctAnswer": "object" },
+    { "id": "mcq_js_2", "skill": "javascript", "question": "Which method converts a JSON string into a JS object?", "options": ["JSON.parse()", "JSON.stringify()", "JSON.toObject()", "JSON.convert()"], "correctAnswer": "JSON.parse()" },
+    { "id": "mcq_js_3", "skill": "javascript", "question": "What does '===' check that '==' does not?", "options": ["Type", "Value", "Scope", "Reference"], "correctAnswer": "Type" },
+    { "id": "mcq_react_1", "skill": "react", "question": "Which hook is used to manage state in a functional component?", "options": ["useEffect", "useState", "useRef", "useContext"], "correctAnswer": "useState" },
+    { "id": "mcq_react_2", "skill": "react", "question": "What triggers a React component to re-render?", "options": ["State or props change", "Page refresh only", "CSS change", "Browser resize"], "correctAnswer": "State or props change" },
+    { "id": "mcq_node_1", "skill": "node.js", "question": "Which module is used to create a server in Node.js?", "options": ["fs", "http", "path", "os"], "correctAnswer": "http" },
+    { "id": "mcq_node_2", "skill": "node.js", "question": "What is npm short for?", "options": ["Node Package Manager", "New Project Module", "Node Program Method", "Network Package Manager"], "correctAnswer": "Node Package Manager" },
+    { "id": "mcq_python_1", "skill": "python", "question": "Which keyword is used to define a function in Python?", "options": ["func", "def", "function", "lambda"], "correctAnswer": "def" },
+    { "id": "mcq_python_2", "skill": "python", "question": "What data type is returned by the range() function?", "options": ["list", "range object", "tuple", "generator"], "correctAnswer": "range object" },
+    { "id": "mcq_sql_1", "skill": "sql", "question": "Which SQL clause is used to filter grouped results?", "options": ["WHERE", "HAVING", "GROUP BY", "ORDER BY"], "correctAnswer": "HAVING" },
+    { "id": "mcq_sql_2", "skill": "sql", "question": "Which JOIN returns all rows from both tables, matched where possible?", "options": ["INNER JOIN", "LEFT JOIN", "RIGHT JOIN", "FULL OUTER JOIN"], "correctAnswer": "FULL OUTER JOIN" },
+    { "id": "mcq_java_1", "skill": "java", "question": "Which keyword is used to inherit a class in Java?", "options": ["implement", "extends", "inherits", "super"], "correctAnswer": "extends" },
+    { "id": "mcq_java_2", "skill": "java", "question": "What is the default value of a boolean in Java?", "options": ["true", "false", "0", "null"], "correctAnswer": "false" },
+    { "id": "mcq_aws_1", "skill": "aws", "question": "Which AWS service is primarily used for object storage?", "options": ["EC2", "S3", "RDS", "Lambda"], "correctAnswer": "S3" },
+    { "id": "mcq_docker_1", "skill": "docker", "question": "What command builds a Docker image from a Dockerfile?", "options": ["docker run", "docker build", "docker create", "docker start"], "correctAnswer": "docker build" },
+    { "id": "mcq_general_1", "skill": "general", "question": "What does REST stand for in RESTful APIs?", "options": ["Representational State Transfer", "Remote Session Transfer", "Rapid State Transmission", "Resource State Transfer"], "correctAnswer": "Representational State Transfer" },
+    { "id": "mcq_general_2", "skill": "general", "question": "Which HTTP status code means 'Not Found'?", "options": ["200", "301", "404", "500"], "correctAnswer": "404" },
+    { "id": "mcq_general_3", "skill": "general", "question": "What is the time complexity of binary search?", "options": ["O(n)", "O(log n)", "O(n^2)", "O(1)"], "correctAnswer": "O(log n)" },
+    { "id": "mcq_general_4", "skill": "general", "question": "Which data structure uses FIFO order?", "options": ["Stack", "Queue", "Tree", "Graph"], "correctAnswer": "Queue" },
+    { "id": "mcq_general_5", "skill": "general", "question": "What does CI/CD stand for?", "options": ["Continuous Integration/Continuous Deployment", "Code Inspection/Code Delivery", "Central Integration/Central Deployment", "Continuous Inspection/Continuous Development"], "correctAnswer": "Continuous Integration/Continuous Deployment" }
+  ],
+  "codingQuestions": [
+    { "id": "dsa_1", "title": "Two Sum", "difficulty": "Easy", "description": "Given an array of integers and a target sum, return the indices of the two numbers that add up to the target.", "sampleInput": "nums = [2,7,11,15], target = 9", "sampleOutput": "[0,1]" },
+    { "id": "dsa_2", "title": "Reverse a Linked List", "difficulty": "Easy", "description": "Given the head of a singly linked list, reverse the list and return the new head.", "sampleInput": "1 -> 2 -> 3 -> 4 -> 5", "sampleOutput": "5 -> 4 -> 3 -> 2 -> 1" },
+    { "id": "dsa_3", "title": "Valid Parentheses", "difficulty": "Easy", "description": "Given a string containing just the characters (){}[], determine if the input string is valid (properly matched and closed).", "sampleInput": "s = \"()[]{}\"", "sampleOutput": "true" },
+    { "id": "dsa_4", "title": "Longest Substring Without Repeating Characters", "difficulty": "Medium", "description": "Given a string, find the length of the longest substring without repeating characters.", "sampleInput": "s = \"abcabcbb\"", "sampleOutput": "3" },
+    { "id": "dsa_5", "title": "Merge Intervals", "difficulty": "Medium", "description": "Given an array of intervals, merge all overlapping intervals and return the result.", "sampleInput": "intervals = [[1,3],[2,6],[8,10],[15,18]]", "sampleOutput": "[[1,6],[8,10],[15,18]]" },
+    { "id": "dsa_6", "title": "Binary Tree Level Order Traversal", "difficulty": "Medium", "description": "Given the root of a binary tree, return the level order traversal of its nodes' values.", "sampleInput": "root = [3,9,20,null,null,15,7]", "sampleOutput": "[[3],[9,20],[15,7]]" }
+  ]
+}

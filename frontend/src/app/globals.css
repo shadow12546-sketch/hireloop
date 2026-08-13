@@ -1,0 +1,187 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --primary:           238 85% 65%;
+  --primary-foreground: 0 0% 100%;
+
+  --background:        224 50% 99%;
+  --foreground:        224 71% 8%;
+
+  --card:              0 0% 100%;
+  --card-foreground:   224 71% 8%;
+
+  --popover:           0 0% 100%;
+  --popover-foreground: 224 71% 8%;
+
+  --secondary:         262 100% 97%;
+  --secondary-foreground: 262 80% 35%;
+
+  --muted:             220 14% 95%;
+  --muted-foreground:  220 9% 46%;
+
+  --accent:            262 100% 97%;
+  --accent-foreground: 262 80% 40%;
+
+  --destructive:       0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+
+  --border:            220 13% 88%;
+  --input:             220 13% 88%;
+  --ring:              238 85% 65%;
+
+  --radius:            0.625rem;
+}
+
+.dark {
+  --primary:           238 85% 75%;
+  --primary-foreground: 0 0% 100%;
+
+  --background:        224 45% 4%;
+  --foreground:        213 31% 93%;
+
+  --card:              224 45% 8%;
+  --card-foreground:   213 31% 93%;
+
+  --popover:           224 45% 8%;
+  --popover-foreground: 213 31% 93%;
+
+  --secondary:         262 30% 18%;
+  --secondary-foreground: 262 80% 78%;
+
+  --muted:             223 40% 14%;
+  --muted-foreground:  215 20% 58%;
+
+  --accent:            262 30% 18%;
+  --accent-foreground: 262 72% 82%;
+
+  --destructive:       0 63% 40%;
+  --destructive-foreground: 0 0% 100%;
+
+  --border:            216 30% 20%;
+  --input:             216 30% 20%;
+  --ring:              238 85% 75%;
+}
+
+@theme inline {
+  --color-background:              hsl(var(--background));
+  --color-foreground:              hsl(var(--foreground));
+  --color-card:                    hsl(var(--card));
+  --color-card-foreground:         hsl(var(--card-foreground));
+  --color-popover:                 hsl(var(--popover));
+  --color-popover-foreground:      hsl(var(--popover-foreground));
+  --color-primary:                 hsl(var(--primary));
+  --color-primary-foreground:      hsl(var(--primary-foreground));
+  --color-secondary:               hsl(var(--secondary));
+  --color-secondary-foreground:    hsl(var(--secondary-foreground));
+  --color-muted:                   hsl(var(--muted));
+  --color-muted-foreground:        hsl(var(--muted-foreground));
+  --color-accent:                  hsl(var(--accent));
+  --color-accent-foreground:       hsl(var(--accent-foreground));
+  --color-destructive:             hsl(var(--destructive));
+  --color-destructive-foreground:  hsl(var(--destructive-foreground));
+  --color-border:                  hsl(var(--border));
+  --color-input:                   hsl(var(--input));
+  --color-ring:                    hsl(var(--ring));
+
+  --radius-sm:   0.375rem;
+  --radius-md:   0.5rem;
+  --radius-lg:   var(--radius);
+  --radius-xl:   1rem;
+  --radius-2xl:  1.5rem;
+
+  --font-sans:   var(--font-geist-sans);
+  --font-mono:   var(--font-geist-mono);
+}
+
+/* ── Gradient utilities ──────────────────────────────────────────── */
+.gradient-violet {
+  background: linear-gradient(135deg, #251c4eff 0%, #767afeff 100%);
+}
+
+/* Hero section bg — light soft blue, dark deep navy */
+.gradient-hero {
+  background: linear-gradient(160deg, #eff4ff 0%, #e6f0ff 40%, #dde8ff 100%);
+}
+.dark .gradient-hero {
+  background: linear-gradient(160deg, #0a0f25 0%, #111835 50%, #080c1d 100%);
+}
+
+/* Card hover lift */
+.card-hover {
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+.card-hover:hover {
+  box-shadow: 0 8px 28px -6px rgba(124, 34, 229, 0.18);
+  transform: translateY(-2px);
+}
+
+/* ── Skeleton shimmer ────────────────────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--muted)) 25%,
+    hsl(220 14% 91%) 50%,
+    hsl(var(--muted)) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: var(--radius-md);
+}
+.dark .skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--muted)) 25%,
+    hsl(223 40% 18%) 50%,
+    hsl(var(--muted)) 75%
+  );
+  background-size: 200% 100%;
+}
+
+/* ── Scrollbar styling ───────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.4);
+}
+
+/* ── Base resets ─────────────────────────────────────────────────── */
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-bold tracking-tight;
+  }
+
+  /* Responsive page heading utilities */
+  .page-title {
+    @apply text-2xl sm:text-3xl font-bold tracking-tight;
+  }
+  .page-subtitle {
+    @apply text-sm text-muted-foreground mt-1;
+  }
+
+  /* Consistent table head across light/dark */
+  .th-cell {
+    @apply px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground;
+  }
+  .td-cell {
+    @apply px-4 py-3.5 text-sm;
+  }
+}

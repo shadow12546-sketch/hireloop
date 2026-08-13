@@ -1,0 +1,461 @@
+{
+  "info": {
+    "name": "HireLoop API",
+    "description": "HireLoop backend API collection. Set the {{baseUrl}} variable and run Auth requests first to populate {{candidateAccessToken}} / {{employerAccessToken}} automatically via test scripts.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000/api" },
+    { "key": "candidateAccessToken", "value": "" },
+    { "key": "employerAccessToken", "value": "" },
+    { "key": "jobId", "value": "" },
+    { "key": "applicationId", "value": "" },
+    { "key": "resumeId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register Candidate",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const data = pm.response.json().data;",
+                  "pm.collectionVariables.set('candidateAccessToken', data.accessToken);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/auth/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test Candidate\",\n  \"email\": \"candidate.postman@hireloop.dev\",\n  \"password\": \"Password123\",\n  \"role\": \"candidate\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Register Employer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const data = pm.response.json().data;",
+                  "pm.collectionVariables.set('employerAccessToken', data.accessToken);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/auth/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test Employer\",\n  \"email\": \"employer.postman@hireloop.dev\",\n  \"password\": \"Password123\",\n  \"role\": \"employer\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"candidate.postman@hireloop.dev\",\n  \"password\": \"Password123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Current User (Me)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{candidateAccessToken}}" }],
+            "url": "{{baseUrl}}/auth/me"
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/auth/refresh",
+            "body": { "mode": "raw", "raw": "{\n  \"refreshToken\": \"PASTE_REFRESH_TOKEN\"\n}" }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{candidateAccessToken}}" }],
+            "url": "{{baseUrl}}/auth/logout"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Companies",
+      "item": [
+        {
+          "name": "Create/Update My Company",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{employerAccessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/companies/me",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Acme Technologies\",\n  \"description\": \"We build great tools\",\n  \"industry\": \"Software\",\n  \"location\": \"Remote\",\n  \"website\": \"https://acme.example.com\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get My Company",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{employerAccessToken}}" }],
+            "url": "{{baseUrl}}/companies/me"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Jobs",
+      "item": [
+        {
+          "name": "Create Job",
+          "event": [
+            {
+              "listen": "test",
+              "script": { "exec": ["const data = pm.response.json().data;", "if (data && data.job) pm.collectionVariables.set('jobId', data.job._id);"] }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{employerAccessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/jobs",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Frontend Engineer\",\n  \"description\": \"We are looking for a talented frontend engineer to join our team.\",\n  \"workMode\": \"remote\",\n  \"employmentType\": \"full-time\",\n  \"skills\": [\"javascript\", \"react\"],\n  \"deadline\": \"2026-12-31T00:00:00.000Z\"\n}"
+            }
+          }
+        },
+        {
+          "name": "List Jobs (search/filter/paginate)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{candidateAccessToken}}" }],
+            "url": "{{baseUrl}}/jobs?search=engineer&workMode=remote&page=1&limit=10"
+          }
+        },
+        {
+          "name": "Get Job By Id",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{candidateAccessToken}}" }],
+            "url": "{{baseUrl}}/jobs/{{jobId}}"
+          }
+        },
+        {
+          "name": "Update Job",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{employerAccessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/jobs/{{jobId}}",
+            "body": { "mode": "raw", "raw": "{\n  \"salaryMin\": 60000,\n  \"salaryMax\": 90000\n}" }
+          }
+        },
+        {
+          "name": "Close Job",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{employerAccessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/jobs/{{jobId}}",
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"CLOSED\"\n}" }
+          }
+        },
+        {
+          "name": "Delete Job",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{employerAccessToken}}" }],
+            "url": "{{baseUrl}}/jobs/{{jobId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Resumes",
+      "item": [
+        {
+          "name": "Upload Resume",
+          "event": [
+            {
+              "listen": "test",
+              "script": { "exec": ["const data = pm.response.json().data;", "if (data && data.resume) pm.collectionVariables.set('resumeId', data.resume.id);"] }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{candidateAccessToken}}" }],
+            "url": "{{baseUrl}}/resumes/upload",
+            "body": {
+              "mode": "formdata",
+              "formdata": [{ "key": "resume", "type": "file", "src": "" }]
+            }
+          }
+        },
+        {
+          "name": "Download Resume",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{candidateAccessToken}}" }],
+            "url": "{{baseUrl}}/resumes/{{resumeId}}"
+          }
+        },
+        {
+          "name": "Delete Resume",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{candidateAccessToken}}" }],
+            "url": "{{baseUrl}}/resumes/{{resumeId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Applications",
+      "item": [
+        {
+          "name": "Apply to Job",
+          "event": [
+            {
+              "listen": "test",
+              "script": { "exec": ["const data = pm.response.json().data;", "if (data && data.application) pm.collectionVariables.set('applicationId', data.application._id);"] }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{candidateAccessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/applications",
+            "body": { "mode": "raw", "raw": "{\n  \"jobId\": \"{{jobId}}\"\n}" }
+          }
+        },
+        {
+          "name": "My Applications (Candidate)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{candidateAccessToken}}" }],
+            "url": "{{baseUrl}}/applications/mine"
+          }
+        },
+        {
+          "name": "Applicants for a Job (Employer)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{employerAccessToken}}" }],
+            "url": "{{baseUrl}}/applications/job/{{jobId}}"
+          }
+        },
+        {
+          "name": "Get Application By Id",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{employerAccessToken}}" }],
+            "url": "{{baseUrl}}/applications/{{applicationId}}"
+          }
+        },
+        {
+          "name": "Advance Status (Employer)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{employerAccessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/applications/{{applicationId}}/advance",
+            "body": { "mode": "raw", "raw": "{\n  \"toStatus\": \"SCREENING\"\n}" }
+          }
+        },
+        {
+          "name": "Final Decision (Employer)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{employerAccessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/applications/{{applicationId}}/decision",
+            "body": { "mode": "raw", "raw": "{\n  \"decision\": \"OFFER\",\n  \"note\": \"Great candidate!\"\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Assessments",
+      "item": [
+        {
+          "name": "Create Assessment Template (Employer)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{employerAccessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/assessments/templates",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"JS Fundamentals\",\n  \"tags\": [\"javascript\", \"react\"],\n  \"questions\": [\n    { \"questionText\": \"2+2=?\", \"type\": \"mcq\", \"options\": [\"3\", \"4\"], \"correctAnswer\": \"4\", \"points\": 5 }\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Attempt By Application",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{candidateAccessToken}}" }],
+            "url": "{{baseUrl}}/assessments/application/{{applicationId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "AI Integration",
+      "item": [
+        {
+          "name": "Resume Parse - Step 1 (identify)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{candidateAccessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/ai/resume/parse",
+            "body": { "mode": "raw", "raw": "{\n  \"resumeId\": \"{{resumeId}}\"\n}" }
+          }
+        },
+        {
+          "name": "Resume Parse - Step 2 (save result)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{candidateAccessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/ai/resume/parse",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resumeId\": \"{{resumeId}}\",\n  \"result\": {\n    \"atsScore\": 82,\n    \"extractedSkills\": [\"javascript\", \"react\"],\n    \"keywords\": [\"frontend\", \"react\"]\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "Resume Match - Step 2 (save result)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{employerAccessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/ai/resume/match",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resumeId\": \"{{resumeId}}\",\n  \"jobId\": \"{{jobId}}\",\n  \"applicationId\": \"{{applicationId}}\",\n  \"result\": {\n    \"matchScore\": 76,\n    \"strengths\": [\"Strong React experience\"],\n    \"missingSkills\": [\"TypeScript\"],\n    \"recommendation\": \"Good fit for the role\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "Interview Session - Save Result",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{candidateAccessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/ai/interview/session",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"applicationId\": \"{{applicationId}}\",\n  \"transcript\": [ { \"speaker\": \"ai\", \"message\": \"Tell me about yourself.\" }, { \"speaker\": \"candidate\", \"message\": \"I'm a frontend developer...\" } ],\n  \"summary\": \"Candidate showed strong communication skills.\",\n  \"score\": 78,\n  \"status\": \"COMPLETED\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Offers",
+      "item": [
+        {
+          "name": "Create Offer",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{employerAccessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/offers",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"applicationId\": \"{{applicationId}}\",\n  \"salary\": 85000,\n  \"joiningDate\": \"2026-09-01T00:00:00.000Z\",\n  \"benefits\": [\"Health insurance\", \"Remote work\"]\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "List My Notifications",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{candidateAccessToken}}" }],
+            "url": "{{baseUrl}}/notifications"
+          }
+        },
+        {
+          "name": "Mark All Read",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{candidateAccessToken}}" }],
+            "url": "{{baseUrl}}/notifications/read-all"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Analytics",
+      "item": [
+        {
+          "name": "Employer Overview",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{employerAccessToken}}" }],
+            "url": "{{baseUrl}}/analytics/overview"
+          }
+        }
+      ]
+    }
+  ]
+}
