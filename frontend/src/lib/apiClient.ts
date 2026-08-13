@@ -1,40 +1,46 @@
-/**
- * API Client — Single source of truth for all HTTP calls.
- *
- * DEPENDENCY: Requires NEXT_PUBLIC_API_URL to be set in .env.local.
- * When NEXT_PUBLIC_USE_MOCK=true (or API_URL is empty), all service
- * files fall back to their local mock data automatically.
- *
- * DO NOT instantiate fetch directly in components or pages.
- * Always go through a service, which uses this client.
- *
- * Architecture:
- *   Component / Page
- *     └── useXxx hook  (optional, for complex state)
- *           └── xxxService.ts
- *                 └── apiClient  ← you are here
- *                       └── Backend REST API
- */
+const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? ""
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? ""
-export const IS_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true" || !API_URL
-
-// ─── Request helpers ──────────────────────────────────────────────────────────
+export const IS_MOCK =
+  process.env.NEXT_PUBLIC_USE_MOCK === "true" || !API_URL
 
 type RequestOptions = Omit<RequestInit, "body"> & {
   body?: unknown
 }
 
-async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+async function request<T>(
+  path: string,
+  options: RequestOptions = {}
+): Promise<T> {
   const { body, ...rest } = options
+
+  const headers = new Headers(rest.headers)
+
+  // Do not set Content-Type manually for FormData.
+  // The browser automatically sets multipart/form-data with the boundary.
+  if (!(body instanceof FormData)) {
+    headers.set("Content-Type", "application/json")
+  }
+
+  // Add access token for authenticated backend routes
+  if (typeof window !== "undefined") {
+    const token =
+      localStorage.getItem("accessToken") ||
+      localStorage.getItem("access_token")
+
+    if (token) {
+      headers.set("Authorization", `Bearer ${token}`)
+    }
+  }
 
   const res = await fetch(`${API_URL}${path}`, {
     ...rest,
-    headers: {
-      "Content-Type": "application/json",
-      ...(rest.headers ?? {}),
-    },
-    body: body !== undefined ? JSON.stringify(body) : undefined,
+    headers,
+    body:
+      body !== undefined
+        ? body instanceof FormData
+          ? body
+          : JSON.stringify(body)
+        : undefined,
   })
 
   if (!res.ok) {
@@ -42,26 +48,56 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     throw new Error(`API ${res.status}: ${text}`)
   }
 
-  // 204 No Content — return empty object
-  if (res.status === 204) return {} as T
+  if (res.status === 204) {
+    return {} as T
+  }
+
   return res.json() as Promise<T>
 }
 
-// ─── Exported API client ──────────────────────────────────────────────────────
-
 export const apiClient = {
   get: <T>(path: string, init?: RequestInit) =>
-    request<T>(path, { method: "GET", ...init }),
+    request<T>(path, {
+      method: "GET",
+      ...init,
+    }),
 
-  post: <T>(path: string, body: unknown, init?: RequestInit) =>
-    request<T>(path, { method: "POST", body, ...init }),
+  post: <T>(
+    path: string,
+    body: unknown,
+    init?: RequestInit
+  ) =>
+    request<T>(path, {
+      method: "POST",
+      body,
+      ...init,
+    }),
 
-  put: <T>(path: string, body: unknown, init?: RequestInit) =>
-    request<T>(path, { method: "PUT", body, ...init }),
+  put: <T>(
+    path: string,
+    body: unknown,
+    init?: RequestInit
+  ) =>
+    request<T>(path, {
+      method: "PUT",
+      body,
+      ...init,
+    }),
 
-  patch: <T>(path: string, body: unknown, init?: RequestInit) =>
-    request<T>(path, { method: "PATCH", body, ...init }),
+  patch: <T>(
+    path: string,
+    body: unknown,
+    init?: RequestInit
+  ) =>
+    request<T>(path, {
+      method: "PATCH",
+      body,
+      ...init,
+    }),
 
   delete: <T>(path: string, init?: RequestInit) =>
-    request<T>(path, { method: "DELETE", ...init }),
+    request<T>(path, {
+      method: "DELETE",
+      ...init,
+    }),
 }
