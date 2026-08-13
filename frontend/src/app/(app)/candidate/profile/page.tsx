@@ -1,16 +1,18 @@
 "use client"
 import { candidateService } from "@/services/candidateService"
 
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Progress } from "@/components/ui/progress"
-import { Plus, Trash2, Save, UploadCloud, AlertCircle } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Progress } from "@/components/ui/progress"
+import { Textarea } from "@/components/ui/textarea"
+import { AlertCircle, Plus, Save, Trash2, UploadCloud } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
 
 export default function CandidateProfile() {
+  const router = useRouter()
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -54,14 +56,44 @@ export default function CandidateProfile() {
     load()
   }, [])
 
-  const handleSave = async () => {
+const handleSave = async () => {
+  if (!profile) return
+
+  try {
     setSaving(true)
-    // Simulate API save
-    await new Promise(r => setTimeout(r, 800))
-    setSaving(false)
+
+    await candidateService.updateProfile({
+      firstName: profile.firstName,
+      lastName: profile.lastName,
+      title: profile.title,
+      email: profile.email,
+      phone: profile.phone,
+      location: profile.location,
+      skills: profile.skills,
+      experience: profile.experience,
+      education: profile.education,
+      links: profile.links,
+    })
+
     setHasUnsavedParsedData(false)
+
+    if (typeof window !== "undefined") {
+      sessionStorage.removeItem("parsed_resume_data")
+    }
+
     alert("Profile saved successfully!")
+  } catch (error) {
+    console.error("Failed to save profile:", error)
+
+    alert(
+      error instanceof Error
+        ? error.message
+        : "Failed to save profile. Please try again."
+    )
+  } finally {
+    setSaving(false)
   }
+}
 
   const addSkill = () => {
     if (newSkill.trim() && !profile.skills.includes(newSkill.trim())) {
@@ -116,7 +148,10 @@ export default function CandidateProfile() {
             </div>
             
             <div className="w-full md:w-auto flex flex-col gap-2">
-              <Button className="w-full gap-2">
+              <Button
+                className="w-full gap-2"
+                onClick={() => router.push("/candidate/resume")}
+              >
                 <UploadCloud className="w-4 h-4" />
                 Upload New Resume
               </Button>

@@ -7,9 +7,7 @@ const ApiError = require('../utils/ApiError');
 
 /**
  * Streams a file buffer into the GridFS "resumes" bucket and creates
- * the corresponding Resume metadata document. Marks any previous
- * active resume for this candidate as inactive (soft-delete) and sets
- * the new one as the candidate's activeResume.
+ * the corresponding Resume metadata document.
  */
 async function uploadResume({ candidateId, file }) {
   const bucket = getResumeBucket();
@@ -35,7 +33,6 @@ async function uploadResume({ candidateId, file }) {
     isActive: true,
   });
 
-  // Deactivate previous resumes for this candidate (keep history, but only one active)
   await Resume.updateMany(
     { candidate: candidateId, _id: { $ne: resumeDoc._id } },
     { $set: { isActive: false } }
@@ -51,44 +48,89 @@ async function uploadResume({ candidateId, file }) {
 }
 
 /**
- * Returns { resumeDoc, downloadStream } for streaming a resume file
- * back to an HTTP response. Throws 404 if not found.
+ * Returns { resumeDoc, downloadStream } for streaming a resume file.
  */
 async function getResumeStream(resumeId) {
   const resumeDoc = await Resume.findById(resumeId);
+
   if (!resumeDoc) {
     throw ApiError.notFound('Resume not found');
   }
 
   const bucket = getResumeBucket();
-  const downloadStream = bucket.openDownloadStream(new mongoose.Types.ObjectId(resumeDoc.fileId));
+
+  const downloadStream = bucket.openDownloadStream(
+    new mongoose.Types.ObjectId(resumeDoc.fileId)
+  );
 
   return { resumeDoc, downloadStream };
 }
 
-async function getResumeMetadata(resumeId) {
-  const resumeDoc = await Resume.findById(resumeId);
-  if (!resumeDoc) {
-    throw ApiError.notFound('Resume not found');
-  }
-  return resumeDoc;
-}
-
 /**
- * Deletes a resume: removes the GridFS file and the metadata document.
- * If it was the candidate's activeResume, clears that reference.
+ * Returns the resume document and its complete GridFS file as a Buffer.
+ *
+ * Used by the AI service so PDF/DOCX content can be extracted without
+ * exposing a temporary local file.
  */
-async function deleteResume(resumeId) {
+async function getResumeBuffer(resumeId) {
   const resumeDoc = await Resume.findById(resumeId);
+
   if (!resumeDoc) {
     throw ApiError.notFound('Resume not found');
   }
 
   const bucket = getResumeBucket();
+
+  const downloadStream = bucket.openDownloadStream(
+    new mongoose.Types.ObjectId(resumeDoc.fileId)
+  );
+
+  const chunks = [];
+
+  return new Promise((resolve, reject) => {
+    downloadStream.on('data', (chunk) => {
+      chunks.push(chunk);
+    });
+
+    downloadStream.on('error', reject);
+
+    downloadStream.on('end', () => {
+      resolve({
+        resumeDoc,
+        buffer: Buffer.concat(chunks),
+      });
+    });
+  });
+}
+
+async function getResumeMetadata(resumeId) {
+  const resumeDoc = await Resume.findById(resumeId);
+
+  if (!resumeDoc) {
+    throw ApiError.notFound('Resume not found');
+  }
+
+  return resumeDoc;
+}
+
+/**
+ * Deletes a resume: removes the GridFS file and metadata document.
+ */
+async function deleteResume(resumeId) {
+  const resumeDoc = await Resume.findById(resumeId);
+
+  if (!resumeDoc) {
+    throw ApiError.notFound('Resume not found');
+  }
+
+  const bucket = getResumeBucket();
+
   try {
-    await bucket.delete(new mongoose.Types.ObjectId(resumeDoc.fileId));
+    await bucket.delete(
+      new mongoose.Types.ObjectId(resumeDoc.fileId)
+    );
   } catch (err) {
-    // File may already be missing from GridFS; proceed to remove metadata anyway.
+    // File may already be missing from GridFS.
   }
 
   await Resume.deleteOne({ _id: resumeDoc._id });
@@ -101,4 +143,10 @@ async function deleteResume(resumeId) {
   return resumeDoc;
 }
 
-module.exports = { uploadResume, getResumeStream, getResumeMetadata, deleteResume };
+module.exports = {
+  uploadResume,
+  getResumeStream,
+  getResumeBuffer,
+  getResumeMetadata,
+  deleteResume,
+};

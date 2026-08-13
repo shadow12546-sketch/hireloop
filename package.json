@@ -21,6 +21,9 @@
   "homepage": "https://github.com/shadow12546-sketch/hireloop#readme",
   "dependencies": {
     "dotenv": "^17.4.2",
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "groq-sdk": "^1.5.0",
+    "mammoth": "^1.12.1",
+    "pdf-parse": "^2.4.5"
   }
 }

@@ -13,7 +13,12 @@
   "engines": {
     "node": ">=18.0.0"
   },
-  "keywords": ["hireloop", "ats", "recruitment", "hackathon"],
+  "keywords": [
+    "hireloop",
+    "ats",
+    "recruitment",
+    "hackathon"
+  ],
   "license": "MIT",
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -24,12 +29,15 @@
     "express-mongo-sanitize": "^2.2.0",
     "express-rate-limit": "^7.4.0",
     "google-auth-library": "^9.11.0",
+    "groq-sdk": "^1.5.0",
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
+    "mammoth": "^1.12.1",
     "mongoose": "^8.5.1",
     "morgan": "^1.10.0",
     "multer": "^1.4.5-lts.1",
     "nodemailer": "^6.9.14",
+    "pdf-parse": "^2.4.5",
     "zod": "^3.23.8"
   },
   "devDependencies": {
