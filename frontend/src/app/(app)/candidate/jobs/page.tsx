@@ -27,7 +27,13 @@ export default function CandidateJobs() {
   })
 
   useEffect(() => {
-    jobService.getJobs().then(setJobs).finally(() => setLoading(false))
+    jobService.getJobs()
+      .then((res: any) => {
+        const jobsList = Array.isArray(res) ? res : res?.data?.jobs || res?.jobs || res?.data || []
+        setJobs(Array.isArray(jobsList) ? jobsList : [])
+      })
+      .catch(() => setJobs([]))
+      .finally(() => setLoading(false))
   }, [])
 
   const activeFilterCount =
@@ -49,18 +55,25 @@ export default function CandidateJobs() {
   }
 
   const filteredJobs = useMemo(() => {
+    if (!Array.isArray(jobs)) return []
     return jobs.filter(job => {
+      if (!job) return false
+      const compName = typeof job.company === 'object' ? job.company?.name || '' : job.company || ''
+      const jobTitle = job.title || ''
+      const jobLoc = job.location || ''
+      const jobType = job.type || job.employmentType || ''
+
       const matchSearch =
         !searchTerm ||
-        job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        job.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        jobTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        compName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (job.skills || []).some((s: string) => s.toLowerCase().includes(searchTerm.toLowerCase()))
       const matchLocation =
-        !location || job.location.toLowerCase().includes(location.toLowerCase())
+        !location || jobLoc.toLowerCase().includes(location.toLowerCase())
       const matchMode =
-        filters.workMode.length === 0 || filters.workMode.some(m => job.location?.includes(m) || job.type?.includes(m))
+        filters.workMode.length === 0 || filters.workMode.some(m => jobLoc.includes(m) || jobType.includes(m))
       const matchType =
-        filters.jobType.length === 0 || filters.jobType.includes(job.type)
+        filters.jobType.length === 0 || filters.jobType.includes(jobType)
       return matchSearch && matchLocation && matchMode && matchType
     })
   }, [jobs, searchTerm, location, filters])
@@ -227,8 +240,8 @@ export default function CandidateJobs() {
         </div>
       ) : (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filteredJobs.map(job => (
-            <JobCard key={job.id} job={job} />
+          {filteredJobs.map((job, index) => (
+            <JobCard key={job._id || job.id || index} job={job} />
           ))}
         </div>
       )}

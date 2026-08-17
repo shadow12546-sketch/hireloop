@@ -13,7 +13,7 @@ const navLinks = [
     sub: ["Jobs", "Internships"],
   },
   {
-    label: "For Recruiters",
+    label: "For Employers",
     sub: ["Post a Job", "Talent Search", "Assessment Tool"],
   },
   { label: "Leaderboard", href: "/#" },

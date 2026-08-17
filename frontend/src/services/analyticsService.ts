@@ -74,108 +74,83 @@ export interface AnalyticsData {
   generatedAt: string
 }
 
-// ─── Mock Data ────────────────────────────────────────────────────────────────
 
-const mockData: AnalyticsData = {
-  kpis: {
-    activeJobs: 12,
-    activeCandidates: 145,
-    todaysInterviews: 4,
-    pendingReviews: 28,
-    offerAcceptanceRate: 85,
-  },
-  funnel: [
-    { stage: "Applications", count: 500, conversionFromPrev: null },
-    { stage: "Screening",    count: 250, conversionFromPrev: 50 },
-    { stage: "Shortlisted",  count: 100, conversionFromPrev: 40 },
-    { stage: "Interview",    count: 45,  conversionFromPrev: 45 },
-    { stage: "Offer",        count: 15,  conversionFromPrev: 33 },
-    { stage: "Hired",        count: 12,  conversionFromPrev: 80 },
-  ],
-  monthlyTrend: [
-    { month: "Jan", year: 2026, applications: 62,  hires: 5,  interviews: 22 },
-    { month: "Feb", year: 2026, applications: 85,  hires: 8,  interviews: 30 },
-    { month: "Mar", year: 2026, applications: 120, hires: 12, interviews: 44 },
-    { month: "Apr", year: 2026, applications: 98,  hires: 10, interviews: 38 },
-    { month: "May", year: 2026, applications: 145, hires: 15, interviews: 55 },
-    { month: "Jun", year: 2026, applications: 190, hires: 20, interviews: 70 },
-    { month: "Jul", year: 2026, applications: 175, hires: 18, interviews: 64 },
-    { month: "Aug", year: 2026, applications: 110, hires: 7,  interviews: 40 },
-  ],
-  applicationsByJob: [
-    { jobTitle: "Senior React Developer", count: 120 },
-    { jobTitle: "Product Manager",        count: 85  },
-    { jobTitle: "UX Designer",            count: 60  },
-    { jobTitle: "Backend Engineer",       count: 45  },
-    { jobTitle: "DevOps Engineer",        count: 30  },
-  ],
-  applicationStatusDistribution: [
-    { label: "Applied",      count: 200, color: "#6366f1" },
-    { label: "Screening",    count: 120, color: "#8b5cf6" },
-    { label: "Shortlisted",  count: 80,  color: "#a855f7" },
-    { label: "Interview",    count: 45,  color: "#d946ef" },
-    { label: "Offer",        count: 15,  color: "#ec4899" },
-    { label: "Hired",        count: 12,  color: "#10b981" },
-    { label: "Rejected",     count: 28,  color: "#ef4444" },
-  ],
-  interviewAnalytics: {
-    scheduled: 12,
-    completed: 28,
-    pending: 4,
-    cancelled: 2,
-  },
-  offerAnalytics: {
-    sent: 15,
-    accepted: 10,
-    rejected: 2,
-    pending: 3,
-  },
-  advanced: {
-    avgTimeToHire: 18,
-    topSources: [
-      { source: "LinkedIn",       count: 180 },
-      { source: "Direct Apply",   count: 140 },
-      { source: "Referral",       count: 95  },
-      { source: "Job Boards",     count: 60  },
-      { source: "Company Site",   count: 25  },
-    ],
-    recruiterPerformance: [
-      { name: "Alice (Recruiter)", hires: 8,  timeToFill: 16 },
-      { name: "Bob (Recruiter)",   hires: 5,  timeToFill: 22 },
-      { name: "Carol (Recruiter)", hires: 7,  timeToFill: 14 },
-    ],
-    conversionRates: [
-      { stage: "Applied → Screening",   rate: 50 },
-      { stage: "Screening → Interview", rate: 18 },
-      { stage: "Interview → Offer",     rate: 33 },
-      { stage: "Offer → Hired",         rate: 80 },
-    ],
-  },
-  generatedAt: new Date().toISOString(),
-}
 
 // ─── Service ──────────────────────────────────────────────────────────────────
 
-import { apiClient, IS_MOCK } from "@/lib/apiClient"
-
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+import { apiClient } from "@/lib/apiClient"
 
 export type DateRange = "7d" | "30d" | "90d" | "1y"
 
 export const analyticsService = {
   getAnalytics: async (range: DateRange = "30d"): Promise<AnalyticsData> => {
-    if (IS_MOCK) {
-      await delay(700)
-      return { ...mockData, generatedAt: new Date().toISOString() }
+    try {
+      const res = await apiClient.get<any>(`/analytics/overview`)
+      const data = res.data || res;
+      const stats = data.applicationsByStatus || {};
+
+      const fallbackTrend = [
+        { month: "Current", year: new Date().getFullYear(), applications: data.totalApplications || 0, hires: stats.HIRED || 0, interviews: stats.AI_INTERVIEW || 0 }
+      ];
+
+      const funnel: FunnelStage[] = [
+        { stage: "Applied", count: stats.APPLIED || 0, conversionFromPrev: null },
+        { stage: "Screening", count: stats.SCREENING || 0, conversionFromPrev: 100 },
+        { stage: "Shortlisted", count: stats.SHORTLISTED || 0, conversionFromPrev: 100 },
+        { stage: "Assessment", count: stats.ASSESSMENT || 0, conversionFromPrev: 100 },
+        { stage: "Interview", count: stats.AI_INTERVIEW || 0, conversionFromPrev: 100 },
+        { stage: "Offer", count: stats.OFFER || 0, conversionFromPrev: 100 },
+      ];
+
+      const distribution: StatusDistribution[] = [
+        { label: "Applied", count: stats.APPLIED || 0, color: "#6366f1" },
+        { label: "Screening", count: stats.SCREENING || 0, color: "#8b5cf6" },
+        { label: "Shortlisted", count: stats.SHORTLISTED || 0, color: "#a855f7" },
+        { label: "Interview", count: stats.AI_INTERVIEW || 0, color: "#d946ef" },
+        { label: "Offer", count: stats.OFFER || 0, color: "#ec4899" },
+        { label: "Rejected", count: stats.REJECTED || 0, color: "#ef4444" },
+      ];
+
+      return {
+        kpis: {
+          activeJobs: data.openJobs || 0,
+          activeCandidates: data.totalApplications || 0,
+          todaysInterviews: 0,
+          pendingReviews: stats.EMPLOYER_FINAL_DECISION || 0,
+          offerAcceptanceRate: 0,
+        },
+        funnel,
+        monthlyTrend: fallbackTrend,
+        applicationsByJob: [],
+        applicationStatusDistribution: distribution,
+        interviewAnalytics: { scheduled: 0, completed: 0, pending: 0, cancelled: 0 },
+        offerAnalytics: { sent: stats.OFFER || 0, accepted: 0, rejected: 0, pending: 0 },
+        advanced: {
+          avgTimeToHire: 0,
+          topSources: [],
+          recruiterPerformance: [],
+          conversionRates: [],
+        },
+        generatedAt: new Date().toISOString(),
+      }
+    } catch {
+      return {
+        kpis: { activeJobs: 0, activeCandidates: 0, todaysInterviews: 0, pendingReviews: 0, offerAcceptanceRate: 0 },
+        funnel: [],
+        monthlyTrend: [],
+        applicationsByJob: [],
+        applicationStatusDistribution: [],
+        interviewAnalytics: { scheduled: 0, completed: 0, pending: 0, cancelled: 0 },
+        offerAnalytics: { sent: 0, accepted: 0, rejected: 0, pending: 0 },
+        advanced: { avgTimeToHire: 0, topSources: [], recruiterPerformance: [], conversionRates: [] },
+        generatedAt: new Date().toISOString(),
+      }
     }
-    return apiClient.get<AnalyticsData>(`/analytics?range=${range}`)
   },
 
   getKpis: async (): Promise<AnalyticsKpis> => {
-    if (IS_MOCK) {
-      await delay(300)
-      return mockData.kpis
-    }
-    return apiClient.get<AnalyticsKpis>(`/analytics/kpis`)
+    const data = await analyticsService.getAnalytics();
+    return data.kpis;
   },
 }
+

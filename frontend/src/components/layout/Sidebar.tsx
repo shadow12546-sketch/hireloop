@@ -1,9 +1,12 @@
 "use client"
 
 import * as React from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
+import { clearAuthSession, getCurrentUser } from "@/lib/auth"
+import { authService } from "@/services/authService"
 import {
   LayoutDashboard,
   Briefcase,
@@ -90,8 +93,7 @@ export function Sidebar({ className, ...props }: SidebarProps) {
   const pathname = usePathname()
   const isCandidate = pathname.startsWith("/candidate")
   const navGroups = isCandidate ? candidateNavGroups : employerNavGroups
-  const userRole = isCandidate ? "Candidate" : "Employer"
-  const userInitial = isCandidate ? "C" : "E"
+
 
   return (
     <div
@@ -122,7 +124,7 @@ export function Sidebar({ className, ...props }: SidebarProps) {
             : "bg-violet-500/10 text-violet-600 dark:text-violet-400"
         )}>
           {isCandidate ? <UserCircle className="h-3 w-3" /> : <Building2 className="h-3 w-3" />}
-          {userRole} Portal
+          {isCandidate ? "Candidate" : "Employer"} Portal
         </span>
       </div>
 
@@ -168,23 +170,56 @@ export function Sidebar({ className, ...props }: SidebarProps) {
 
       {/* User footer */}
       <div className="px-3 py-4 border-t">
-        <div className="flex items-center gap-3 rounded-xl p-3 hover:bg-muted/60 cursor-pointer transition-colors">
-          <div className="h-8 w-8 rounded-full gradient-violet flex items-center justify-center text-white font-bold text-sm shrink-0">
-            {userInitial}
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold truncate">Sachin Verma</p>
-            <p className="text-xs text-muted-foreground truncate">{userRole}</p>
-          </div>
-        </div>
-        <button
-          onClick={() => { window.location.href = "/login" }}
-          className="mt-1 w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all"
-        >
-          <LogOut className="h-4 w-4 shrink-0" />
-          <span>Log out</span>
-        </button>
+        <SidebarUser />
+        <LogoutButton />
       </div>
     </div>
+  )
+}
+
+function SidebarUser() {
+  const [user, setUser] = useState(getCurrentUser())
+
+  useEffect(() => {
+    // Re-read from localStorage on every mount so a new login is always reflected.
+    setUser(getCurrentUser())
+  }, [])
+
+  const initial = user?.name?.[0]?.toUpperCase() ?? "U"
+  return (
+    <div className="flex items-center gap-3 rounded-xl p-3 hover:bg-muted/60 cursor-pointer transition-colors">
+      <div className="h-8 w-8 rounded-full gradient-violet flex items-center justify-center text-white font-bold text-sm shrink-0">
+        {initial}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold truncate">{user?.name ?? "User"}</p>
+        <p className="text-xs text-muted-foreground truncate capitalize">{user?.role ?? ""}</p>
+      </div>
+    </div>
+  )
+}
+
+function LogoutButton() {
+  const router = useRouter()
+
+  async function handleLogout() {
+    try {
+      await authService.logout()
+    } catch {
+      // ignore — still clear local session
+    } finally {
+      clearAuthSession()
+      router.push("/login")
+    }
+  }
+
+  return (
+    <button
+      onClick={handleLogout}
+      className="mt-1 w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all"
+    >
+      <LogOut className="h-4 w-4 shrink-0" />
+      <span>Log out</span>
+    </button>
   )
 }

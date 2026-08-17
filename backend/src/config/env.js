@@ -5,11 +5,18 @@
  * process.env directly.
  */
 
+const fs = require('fs');
 const path = require('path');
 
-require('dotenv').config({
-  path: path.resolve(__dirname, '../../../.env'),
-});
+const backendEnv = path.resolve(__dirname, '../../.env');
+const rootEnv = path.resolve(__dirname, '../../../.env');
+
+if (fs.existsSync(backendEnv)) {
+  require('dotenv').config({ path: backendEnv });
+}
+if (fs.existsSync(rootEnv)) {
+  require('dotenv').config({ path: rootEnv, override: true });
+}
 
 function required(name, fallback = undefined) {
   const value = process.env[name] ?? fallback;
@@ -70,6 +77,10 @@ const env = {
 
   // Groq / LLM
   GROQ_API_KEY: required('GROQ_API_KEY', ''),
+
+  // ElevenLabs Voice
+  ELEVENLABS_API_KEY: required('ELEVENLABS_API_KEY', ''),
+  ELEVENLABS_VOICE_ID: required('ELEVENLABS_VOICE_ID', ''),
 };
 
 module.exports = env;

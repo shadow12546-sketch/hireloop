@@ -12,9 +12,14 @@ const { JOB_STATUS } = require('../constants/jobConstants');
  * Employer only. High-level counts for the employer's own company.
  */
 const getEmployerOverview = asyncHandler(async (req, res) => {
-  const company = await Company.findOne({ owner: req.user.id });
+  let company = await Company.findOne({ owner: req.user.id });
   if (!company) {
-    throw ApiError.badRequest('Create your company profile first');
+    company = await Company.create({
+      owner: req.user.id,
+      name: `${req.user.name || 'Employer'}'s Company`,
+      industry: 'Technology',
+      description: 'Company profile created automatically.',
+    });
   }
 
   const jobIds = await Job.find({ company: company._id }).distinct('_id');

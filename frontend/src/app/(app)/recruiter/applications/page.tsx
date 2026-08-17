@@ -29,15 +29,8 @@ export default function EmployerApplicationsPage() {
   const [statusFilter, setStatusFilter] = useState("All")
 
   useEffect(() => {
-    applicationService.getApplications().then((data) => {
-      // Augment mock data with employer-side fields
-      const augmented = data.map((app: any) => ({
-        ...app,
-        candidateName: ["John Doe", "Jane Smith", "Alice Johnson"][Math.floor(Math.random() * 3)],
-        matchScore: Math.floor(Math.random() * 20) + 80,
-        experience: ["2 years", "5 years", "3 years"][Math.floor(Math.random() * 3)],
-      }))
-      setApplications(augmented)
+    applicationService.getEmployerApplications().then((data) => {
+      setApplications(data)
     }).finally(() => setLoading(false))
   }, [])
 

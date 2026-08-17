@@ -108,7 +108,7 @@ export function HeroSection() {
                 <Briefcase className="h-4 w-4" /> Find a Job
               </Button>
             </Link>
-            <Link href="/register?role=recruiter">
+            <Link href="/register?role=employer">
               <Button
                 size="lg"
                 variant="outline"
@@ -302,9 +302,9 @@ export function OpportunitiesSection() {
 // ─── Features ─────────────────────────────────────────────────────────────────
 const features = [
   { icon: Brain,    title: "AI Resume Analysis",    desc: "Smart parsing extracts skills and gives an explainable match score against every job." },
-  { icon: Code2,    title: "Coding Assessments",    desc: "In-browser IDE with auto-grading. Recruiters assign; candidates solve — results in real time." },
-  { icon: BarChart3, title: "Recruiter Analytics",  desc: "Funnel charts, time-to-hire metrics, and candidate quality scores at a glance." },
-  { icon: Calendar, title: "Smart Scheduling",      desc: "One-click interview scheduling synced across recruiter, interviewer, and candidate." },
+  { icon: Code2,    title: "Coding Assessments",    desc: "In-browser IDE with auto-grading. Employers assign; candidates solve — results in real time." },
+  { icon: BarChart3, title: "Employer Analytics",  desc: "Funnel charts, time-to-hire metrics, and candidate quality scores at a glance." },
+  { icon: Calendar, title: "Smart Scheduling",      desc: "One-click interview scheduling synced across employer, interviewer, and candidate." },
   { icon: FileText, title: "Offer Management",      desc: "Generate, preview, send, and track offer letters. Candidates respond in-app." },
   { icon: Bell,     title: "Instant Notifications", desc: "Real-time alerts keep every stakeholder informed at each stage of the pipeline." },
   { icon: Users,    title: "Talent Pool",           desc: "Search and filter a rich pool of verified candidates by skills, experience, and location." },
@@ -420,7 +420,7 @@ export function TestimonialsSection() {
             Loved by <span className="text-primary">Thousands</span>
           </h2>
           <p className="text-muted-foreground mt-3">
-            Real stories from candidates and recruiters who found success here.
+            Real stories from candidates and employers who found success here.
           </p>
         </div>
         <div className="grid gap-6 md:grid-cols-3">
@@ -483,7 +483,7 @@ export function CTASection() {
               Get Started Free <ArrowRight className="h-4 w-4" />
             </Button>
           </Link>
-          <Link href="/register?role=recruiter">
+          <Link href="/register?role=employer">
             <Button
               size="lg"
               variant="outline"
@@ -505,7 +505,7 @@ export function CTASection() {
 export function Footer() {
   const cols = [
     { heading: "Opportunities", links: ["Jobs", "Internships", "Hackathons", "Competitions", "Fellowships"] },
-    { heading: "For Recruiters", links: ["Post a Job", "Talent Search", "Assessments", "Analytics", "Pricing"] },
+    { heading: "For Employers", links: ["Post a Job", "Talent Search", "Assessments", "Analytics", "Pricing"] },
     { heading: "Company",        links: ["About Us", "Blog", "Careers", "Press", "Contact"] },
     { heading: "Support",        links: ["Help Centre", "Privacy Policy", "Terms of Service", "Cookies"] },
   ]

@@ -3,6 +3,7 @@ const Job = require('../models/Job');
 const Company = require('../models/Company');
 const Resume = require('../models/Resume');
 const CandidateProfile = require('../models/CandidateProfile');
+const ResumeAnalysis = require('../models/ResumeAnalysis');
 const asyncHandler = require('../utils/asyncHandler');
 const ApiError = require('../utils/ApiError');
 const { sendSuccess } = require('../utils/ApiResponse');
@@ -12,7 +13,7 @@ const { logActivity } = require('../services/activityLogService');
 const { createNotification } = require('../services/notificationService');
 const { ACTIVITY_ACTIONS } = require('../constants/activityActions');
 const { NOTIFICATION_TYPE } = require('../constants/notificationConstants');
-const { transitionApplicationStatus } = require('../services/applicationWorkflowService');
+const { transitionApplicationStatus, autoAssignAssessment } = require('../services/applicationWorkflowService');
 
 /**
  * POST /api/applications
@@ -77,6 +78,36 @@ const createApplication = asyncHandler(async (req, res) => {
     metadata: { jobId },
   });
 
+  // Calculate match score and trigger auto-assignment if score >= 80%
+  const resumeAnalysis =
+    (await ResumeAnalysis.findOne({ resume: resolvedResumeId, job: jobId, type: 'match' })) ||
+    (await ResumeAnalysis.findOne({ resume: resolvedResumeId, type: 'parse' }));
+  let matchScore = 0;
+  if (resumeAnalysis) {
+    if (typeof resumeAnalysis.matchScore === 'number') {
+      matchScore = resumeAnalysis.matchScore;
+    } else if (Array.isArray(resumeAnalysis.extractedSkills) && Array.isArray(job.skills) && job.skills.length > 0) {
+      const normalizeSkill = (skill) => {
+        const s = skill.toLowerCase().trim();
+        if (s === 'react.js') return 'react';
+        if (s === 'node.js') return 'node';
+        if (s === 'express.js') return 'express';
+        if (s === 'mongodb') return 'mongo';
+        return s;
+      };
+      const candidateSkills = new Set(resumeAnalysis.extractedSkills.map(normalizeSkill));
+      const matched = job.skills.filter((s) => candidateSkills.has(normalizeSkill(s))).length;
+      matchScore = Math.round((matched / job.skills.length) * 100);
+      console.log('[DEBUG] extractedSkills:', resumeAnalysis.extractedSkills);
+      console.log('[DEBUG] job.skills:', job.skills);
+      console.log('[DEBUG] matchScore:', matchScore);
+    }
+  }
+
+  if (matchScore >= 80) {
+    await autoAssignAssessment(application, job);
+  }
+
   // Notify employer of new applicant
   const company = await Company.findById(job.company);
   if (company) {
@@ -105,6 +136,7 @@ const listMyApplications = asyncHandler(async (req, res) => {
   const [applications, totalCount] = await Promise.all([
     Application.find(filter)
       .populate({ path: 'job', populate: { path: 'company', select: 'name industry location' } })
+      .populate({ path: 'assignedAssessmentAttempt', populate: { path: 'assessment' } })
       .sort({ appliedAt: -1 })
       .skip(skip)
       .limit(limit),
@@ -164,7 +196,7 @@ const getApplicationById = asyncHandler(async (req, res) => {
     .populate({ path: 'job', populate: { path: 'company' } })
     .populate('candidate', 'name email')
     .populate('resume')
-    .populate('assignedAssessmentAttempt')
+    .populate({ path: 'assignedAssessmentAttempt', populate: { path: 'assessment' } })
     .populate('interviewSession')
     .populate('offerLetter');
 

@@ -1,38 +1,53 @@
-import { apiClient, IS_MOCK } from "@/lib/apiClient"
-import { mockOffers } from "@/lib/mockData"
+import { apiClient } from "@/lib/apiClient"
 
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
-
+/**
+ * NOTE: Backend offer endpoints are:
+ *   POST /api/offers — create offer (employer only)
+ *   GET  /api/offers/:id — get specific offer
+ *   GET  /api/offers/application/:applicationId — get offer for an application
+ *
+ * There is NO GET /offers list endpoint.
+ * Offers are accessed per-application.
+ */
 export const offerService = {
-  getOffers: async () => {
-    if (IS_MOCK) {
-      await delay(400)
-      return mockOffers
-    }
-    return apiClient.get<any[]>("/offers")
+  /**
+   * No backend list-all-offers endpoint. Returns empty array.
+   * Use getOfferByApplication() to get an offer for a specific application.
+   */
+  getOffers: async (): Promise<any[]> => {
+    return []
   },
 
+  /** GET /api/offers/:id — get specific offer by ID */
   getOfferById: async (id: string) => {
-    if (IS_MOCK) {
-      await delay(300)
-      return mockOffers.find(o => o.id === id)
-    }
     return apiClient.get<any>(`/offers/${id}`)
   },
 
-  createOffer: async (data: any) => {
-    if (IS_MOCK) {
-      await delay(800)
-      return { success: true, offerId: Math.random().toString() }
+  /**
+   * GET /api/offers/application/:applicationId — get offer for an application.
+   */
+  getOfferByApplication: async (applicationId: string) => {
+    try {
+      return await apiClient.get<any>(`/offers/application/${applicationId}`)
+    } catch {
+      return null
     }
-    return apiClient.post<{ success: boolean; offerId: string }>("/offers", data)
   },
 
-  respondToOffer: async (id: string, accept: boolean) => {
-    if (IS_MOCK) {
-      await delay(600)
-      return { success: true, status: accept ? "Accepted" : "Rejected" }
-    }
-    return apiClient.post<{ success: boolean; status: string }>(`/offers/${id}/respond`, { accept })
+  /**
+   * POST /api/offers — create an offer (employer only).
+   * Body: { applicationId, salary, startDate, ... } (per createOfferSchema)
+   */
+  createOffer: async (data: any) => {
+    return apiClient.post<{ success: boolean; data: { offer: any } }>("/offers", data)
+  },
+
+  /**
+   * NOTE: No /offers/:id/respond endpoint in backend.
+   * Offer acceptance is tracked via application final decision.
+   * This is a no-op to prevent 404.
+   */
+  respondToOffer: async (_id: string, _accept: boolean) => {
+    return { success: false, error: "Direct offer response not supported. Use application decision endpoint." }
   }
 }

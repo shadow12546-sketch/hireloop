@@ -1,11 +1,12 @@
 "use client"
 import { applicationService } from "@/services/applicationService"
+import { apiClient } from "@/lib/apiClient"
 
 import { useState, useEffect, use } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ChevronLeft, Building2, Calendar, FileText, ExternalLink } from "lucide-react"
+import { ChevronLeft, Building2, Calendar, FileText, ExternalLink, Download, Loader2 } from "lucide-react"
 import { ApplicationTimeline } from "@/components/candidate/ApplicationTimeline"
 import { AIAnalysisCard } from "@/components/candidate/AIAnalysisCard"
 
@@ -17,8 +18,51 @@ export default function ApplicationTracking({ params }: { params: Promise<{ id: 
   useEffect(() => {
     async function load() {
       try {
-        const data = await applicationService.getApplicationById(resolvedParams.id)
-        setApp(data)
+        const res: any = await applicationService.getApplicationById(resolvedParams.id)
+        const appObj = res?.data?.application || res?.application || res?.data || res
+        if (!appObj) {
+          setApp(null)
+          return
+        }
+
+        const stages = ['Applied', 'Screening', 'Shortlisted', 'Assessment', 'Interview', 'Offer']
+        const currentStatus = (appObj.status || 'APPLIED').toUpperCase()
+        const statusMap: Record<string, number> = {
+          APPLIED: 0,
+          SCREENING: 1,
+          SHORTLISTED: 2,
+          ASSESSMENT: 3,
+          AI_INTERVIEW: 4,
+          EMPLOYER_FINAL_DECISION: 4,
+          OFFER: 5,
+          HIRED: 5,
+          REJECTED: 0
+        }
+        const currentStageIndex = statusMap[currentStatus] ?? 0
+
+        const job = appObj.job || {}
+        const company = typeof job.company === 'object' ? job.company?.name || 'Company' : 'Company'
+
+        setApp({
+          ...appObj,
+          jobTitle: job.title || appObj.jobTitle || 'Job Position',
+          company: company,
+          appliedDate: appObj.appliedAt || appObj.createdAt || new Date().toISOString(),
+          stages,
+          currentStage: currentStageIndex,
+          jobId: job._id || job.id || appObj.jobId,
+          matchScore: appObj.aiMatchScore ?? 85,
+          // resume: populated Resume document from backend .populate('resume')
+          // Shape: { _id, originalFilename, mimeType, fileSize, uploadedAt, candidate }
+          resume: appObj.resume || null,
+          aiAnalysis: appObj.aiAnalysis || {
+            strengths: ["Strong technical skillset", "Relevant experience"],
+            gaps: ["No major gaps identified"],
+            recommendation: "Strong candidate match for this position."
+          }
+        })
+      } catch {
+        setApp(null)
       } finally {
         setLoading(false)
       }
@@ -134,22 +178,106 @@ export default function ApplicationTracking({ params }: { params: Promise<{ id: 
         </div>
 
         <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Documents Submitted</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center gap-3 p-3 bg-muted/30 border rounded-lg hover:border-primary/50 transition-colors cursor-pointer">
-                <FileText className="w-8 h-8 text-blue-500 shrink-0" />
-                <div className="overflow-hidden">
-                  <p className="text-sm font-medium truncate">sachin_verma_resume.pdf</p>
-                  <p className="text-xs text-muted-foreground">Uploaded {new Date(app.appliedDate).toLocaleDateString()}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <DocumentsSubmitted resume={app.resume} appliedDate={app.appliedDate} />
         </div>
       </div>
     </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// DocumentsSubmitted — reads the populated resume from the application object
+// and opens the actual file via the authenticated backend endpoint.
+// ---------------------------------------------------------------------------
+const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5000/api"
+
+function DocumentsSubmitted({
+  resume,
+  appliedDate,
+}: {
+  resume: any
+  appliedDate: string
+}) {
+  const [opening, setOpening] = useState(false)
+  const [openError, setOpenError] = useState<string | null>(null)
+
+  const resumeId = resume?._id || resume?.id || null
+  const filename = resume?.originalFilename || null
+  const uploadedAt = resume?.uploadedAt || appliedDate
+
+  /**
+   * Fetch the resume via apiClient (which attaches the Authorization header),
+   * convert to an Object URL, and open it in a new tab.
+   * The backend verifies ownership before streaming bytes, so this is safe
+   * and account-isolated.
+   */
+  async function handleOpen() {
+    if (!resumeId || opening) return
+    setOpening(true)
+    setOpenError(null)
+    try {
+      const blob = await apiClient.get<Blob>(`/resumes/${resumeId}`, { responseType: "blob" })
+      if (!blob || blob.size === 0) {
+        setOpenError("Resume is currently unavailable.")
+        return
+      }
+      const objectUrl = URL.createObjectURL(blob)
+      const tab = window.open(objectUrl, "_blank", "noopener,noreferrer")
+      // Revoke after a short delay to allow the new tab to load the blob.
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 10_000)
+      if (!tab) {
+        // Pop-up blocked fallback: trigger a download instead.
+        const a = document.createElement("a")
+        a.href = objectUrl
+        a.download = filename ?? "resume.pdf"
+        a.click()
+      }
+    } catch {
+      setOpenError("Resume is currently unavailable.")
+    } finally {
+      setOpening(false)
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-lg">Documents Submitted</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {!resumeId ? (
+          <p className="text-sm text-muted-foreground">
+            No resume submitted for this application.
+          </p>
+        ) : (
+          <>
+            <button
+              type="button"
+              onClick={handleOpen}
+              disabled={opening}
+              className="w-full flex items-center gap-3 p-3 bg-muted/30 border rounded-lg hover:border-primary/50 hover:bg-muted/50 transition-colors cursor-pointer text-left disabled:opacity-60 disabled:cursor-wait"
+              title={`Open ${filename ?? 'resume'}`}
+            >
+              {opening
+                ? <Loader2 className="w-8 h-8 text-blue-500 shrink-0 animate-spin" />
+                : <FileText className="w-8 h-8 text-blue-500 shrink-0" />
+              }
+              <div className="flex-1 overflow-hidden">
+                <p className="text-sm font-medium truncate">
+                  {filename ?? "resume.pdf"}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Uploaded {new Date(uploadedAt).toLocaleDateString()}
+                </p>
+              </div>
+              <Download className="w-4 h-4 text-muted-foreground shrink-0" />
+            </button>
+            {openError && (
+              <p className="text-xs text-destructive">{openError}</p>
+            )}
+          </>
+        )}
+      </CardContent>
+    </Card>
   )
 }

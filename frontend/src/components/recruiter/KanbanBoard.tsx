@@ -16,7 +16,27 @@ interface Candidate {
   avatar: string
 }
 
-const COLUMNS = ["Applied", "Screening", "AI Pre-Screening", "Shortlisted", "Interview", "Offer", "Hired", "Rejected"]
+const COLUMNS = [
+  "APPLIED",
+  "SCREENING",
+  "SHORTLISTED",
+  "ASSESSMENT",
+  "AI_INTERVIEW",
+  "EMPLOYER_FINAL_DECISION",
+  "OFFER",
+  "REJECTED"
+]
+
+const STATUS_LABELS: Record<string, string> = {
+  APPLIED: "Applied",
+  SCREENING: "Screening",
+  SHORTLISTED: "Shortlisted",
+  ASSESSMENT: "Assessment",
+  AI_INTERVIEW: "AI Interview",
+  EMPLOYER_FINAL_DECISION: "Final Decision",
+  OFFER: "Offer",
+  REJECTED: "Rejected"
+}
 
 interface KanbanBoardProps {
   initialCandidates: Candidate[]
@@ -74,7 +94,7 @@ export function KanbanBoard({ initialCandidates }: KanbanBoardProps) {
           onDrop={(e) => handleDrop(e, column)}
         >
           <div className="p-3 border-b flex justify-between items-center bg-card rounded-t-xl">
-            <h3 className="font-semibold text-sm">{column}</h3>
+            <h3 className="font-semibold text-sm">{STATUS_LABELS[column]}</h3>
             <Badge variant="secondary">
               {candidates.filter(c => c.status === column).length}
             </Badge>
@@ -123,3 +143,4 @@ export function KanbanBoard({ initialCandidates }: KanbanBoardProps) {
     </div>
   )
 }
+

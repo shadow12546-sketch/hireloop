@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const CandidateProfile = require('../models/CandidateProfile');
+const Company = require('../models/Company');
 const asyncHandler = require('../utils/asyncHandler');
 const ApiError = require('../utils/ApiError');
 const { sendSuccess } = require('../utils/ApiResponse');
@@ -36,8 +37,14 @@ const register = asyncHandler(async (req, res) => {
   // Create the empty profile shell so later profile updates are simple upserts
   if (role === ROLES.CANDIDATE) {
     await CandidateProfile.create({ user: user._id });
+  } else if (role === ROLES.EMPLOYER) {
+    await Company.create({
+      owner: user._id,
+      name: `${user.name}'s Company`,
+      industry: 'Technology',
+      description: 'Default company profile',
+    });
   }
-  // Company profile is created later via PUT /api/companies/me (employer chooses when)
 
   const tokens = issueTokenPair(user);
 
@@ -131,6 +138,13 @@ const googleAuth = asyncHandler(async (req, res) => {
 
     if (role === ROLES.CANDIDATE) {
       await CandidateProfile.create({ user: user._id });
+    } else if (role === ROLES.EMPLOYER) {
+      await Company.create({
+        owner: user._id,
+        name: `${user.name}'s Company`,
+        industry: 'Technology',
+        description: 'Default company profile',
+      });
     }
 
     await logActivity({

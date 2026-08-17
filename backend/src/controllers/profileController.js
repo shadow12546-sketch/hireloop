@@ -51,9 +51,14 @@ const getCandidateProfileById = asyncHandler(async (req, res) => {
  * Employer only.
  */
 const getMyCompany = asyncHandler(async (req, res) => {
-  const company = await Company.findOne({ owner: req.user.id });
+  let company = await Company.findOne({ owner: req.user.id });
   if (!company) {
-    throw ApiError.notFound('You have not created a company profile yet');
+    company = await Company.create({
+      owner: req.user.id,
+      name: `${req.user.name || 'Employer'}'s Company`,
+      industry: 'Technology',
+      description: 'Company profile created automatically.',
+    });
   }
   return sendSuccess(res, { message: 'Company profile fetched', data: { company } });
 });

@@ -60,9 +60,8 @@ async function autoAssignAssessment(application, job) {
 
   const template = await findBestMatchingAssessment(job);
   if (!template) {
-    // No templates exist yet in the system - this should not block the
-    // pipeline in a hackathon demo, so we log and continue without one.
-    return null;
+    console.error('[workflow] No active assessment templates found in the system. Cannot auto-assign assessment.');
+    throw ApiError.badRequest('No active assessment templates found in the system. Cannot auto-assign assessment.');
   }
 
   const attempt = await AssessmentAttempt.create({
@@ -73,8 +72,12 @@ async function autoAssignAssessment(application, job) {
     maxScore: template.questions.reduce((sum, q) => sum + (q.points || 0), 0),
   });
 
+  console.log('[DEBUG] selected assessment template:', template._id);
+  console.log('[DEBUG] created AssessmentAttempt:', attempt._id);
+
   application.assignedAssessmentAttempt = attempt._id;
   await application.save();
+  console.log('[DEBUG] assignedAssessmentAttempt saved to application:', application.assignedAssessmentAttempt);
 
   await logActivity({
     actorId: null,

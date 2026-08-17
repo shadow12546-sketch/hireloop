@@ -1,8 +1,8 @@
-const pdfParse = require('pdf-parse');
+const { PDFParse } = require('pdf-parse');
 const mammoth = require('mammoth');
 
 /**
- * Extract readable text from a PDF or DOCX buffer.
+ * Extract readable text from a PDF or DOC/DOCX buffer.
  *
  * @param {Buffer} buffer
  * @param {string} mimeType
@@ -13,11 +13,19 @@ async function extractText(buffer, mimeType) {
     throw new Error('INVALID_FILE_BUFFER');
   }
 
+  // PDF
   if (mimeType === 'application/pdf') {
-    const data = await pdfParse(buffer);
-    return data.text || '';
+    const parser = new PDFParse({ data: buffer });
+
+    try {
+      const result = await parser.getText();
+      return result.text || '';
+    } finally {
+      await parser.destroy();
+    }
   }
 
+  // DOCX / DOC
   if (
     mimeType ===
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||

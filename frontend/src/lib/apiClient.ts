@@ -1,35 +1,29 @@
-const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? ""
+import { getAccessToken, clearAuthSession } from "./auth"
 
-export const IS_MOCK =
-  process.env.NEXT_PUBLIC_USE_MOCK === "true" || !API_URL
+const API_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5000/api"
 
 type RequestOptions = Omit<RequestInit, "body"> & {
   body?: unknown
+  responseType?: "json" | "blob"
 }
 
 async function request<T>(
   path: string,
   options: RequestOptions = {}
 ): Promise<T> {
-  const { body, ...rest } = options
+  const { body, responseType = "json", ...rest } = options
 
   const headers = new Headers(rest.headers)
 
-  // Do not set Content-Type manually for FormData.
-  // The browser automatically sets multipart/form-data with the boundary.
   if (!(body instanceof FormData)) {
     headers.set("Content-Type", "application/json")
   }
 
-  // Add access token for authenticated backend routes
-  if (typeof window !== "undefined") {
-    const token =
-      localStorage.getItem("accessToken") ||
-      localStorage.getItem("access_token")
+  const token = getAccessToken()
 
-    if (token) {
-      headers.set("Authorization", `Bearer ${token}`)
-    }
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`)
   }
 
   const res = await fetch(`${API_URL}${path}`, {
@@ -44,19 +38,59 @@ async function request<T>(
   })
 
   if (!res.ok) {
-    const text = await res.text().catch(() => "Unknown error")
-    throw new Error(`API ${res.status}: ${text}`)
+    if (res.status === 401 && typeof window !== "undefined") {
+      clearAuthSession()
+
+      if (
+        !window.location.pathname.startsWith("/login") &&
+        !window.location.pathname.startsWith("/register")
+      ) {
+        window.location.href = "/login"
+      }
+    }
+
+    const text = await res.text().catch(() => "")
+
+    let message = text
+
+    try {
+      const json = JSON.parse(text)
+      message = json.message || json.error || text
+    } catch {
+      // Keep raw response text
+    }
+
+    throw new Error(
+      message || `Request failed with status ${res.status}`
+    )
+  }
+
+  if (responseType === "blob") {
+    return (await res.blob()) as T
   }
 
   if (res.status === 204) {
     return {} as T
   }
 
-  return res.json() as Promise<T>
+  const text = await res.text()
+
+  if (!text) {
+    return {} as T
+  }
+
+  try {
+    return JSON.parse(text) as T
+  } catch {
+    throw new Error("Invalid JSON response from server.")
+  }
 }
 
 export const apiClient = {
-  get: <T>(path: string, init?: RequestInit) =>
+  get: <T>(
+    path: string,
+    init?: RequestInit & { responseType?: "json" | "blob" }
+  ) =>
     request<T>(path, {
       method: "GET",
       ...init,
@@ -65,7 +99,7 @@ export const apiClient = {
   post: <T>(
     path: string,
     body: unknown,
-    init?: RequestInit
+    init?: RequestInit & { responseType?: "json" | "blob" }
   ) =>
     request<T>(path, {
       method: "POST",
@@ -76,7 +110,7 @@ export const apiClient = {
   put: <T>(
     path: string,
     body: unknown,
-    init?: RequestInit
+    init?: RequestInit & { responseType?: "json" | "blob" }
   ) =>
     request<T>(path, {
       method: "PUT",
@@ -87,7 +121,7 @@ export const apiClient = {
   patch: <T>(
     path: string,
     body: unknown,
-    init?: RequestInit
+    init?: RequestInit & { responseType?: "json" | "blob" }
   ) =>
     request<T>(path, {
       method: "PATCH",
@@ -95,7 +129,10 @@ export const apiClient = {
       ...init,
     }),
 
-  delete: <T>(path: string, init?: RequestInit) =>
+  delete: <T>(
+    path: string,
+    init?: RequestInit & { responseType?: "json" | "blob" }
+  ) =>
     request<T>(path, {
       method: "DELETE",
       ...init,

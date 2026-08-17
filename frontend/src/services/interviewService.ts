@@ -1,38 +1,55 @@
-import { apiClient, IS_MOCK } from "@/lib/apiClient"
-import { mockInterviews } from "@/lib/mockData"
+import { apiClient } from "@/lib/apiClient"
 
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
-
+/**
+ * NOTE: The backend does NOT have a /interviews route.
+ * Interviews in HireLoop are AI-driven sessions tracked via:
+ *   POST /api/ai/interview/session
+ *   GET  /api/ai/interview/session/:applicationId
+ *
+ * The methods below gracefully handle missing endpoints.
+ */
 export const interviewService = {
-  getInterviews: async () => {
-    if (IS_MOCK) {
-      await delay(400)
-      return mockInterviews
-    }
-    return apiClient.get<any[]>("/interviews")
+  /** No backend /interviews list endpoint. Returns empty array. */
+  getInterviews: async (): Promise<any[]> => {
+    return []
   },
 
-  getInterviewById: async (id: string) => {
-    if (IS_MOCK) {
-      await delay(300)
-      return mockInterviews.find(i => i.id === id)
-    }
-    return apiClient.get<any>(`/interviews/${id}`)
+  /** No backend /interviews/:id endpoint. Returns null. */
+  getInterviewById: async (_id: string): Promise<null> => {
+    return null
   },
 
-  scheduleInterview: async (data: any) => {
-    if (IS_MOCK) {
-      await delay(800)
-      return { success: true, interviewId: Math.random().toString() }
+  /**
+   * Get AI interview session for an application.
+   * GET /api/ai/interview/session/:applicationId
+   */
+  getInterviewSession: async (applicationId: string) => {
+    try {
+      return await apiClient.get<any>(`/ai/interview/session/${applicationId}`)
+    } catch {
+      return null
     }
-    return apiClient.post<{ success: boolean; interviewId: string }>("/interviews", data)
   },
 
-  submitFeedback: async (id: string, feedback: any) => {
-    if (IS_MOCK) {
-      await delay(800)
-      return { success: true }
-    }
-    return apiClient.post<{ success: boolean }>(`/interviews/${id}/feedback`, feedback)
+  /**
+   * Save/update AI interview session.
+   * POST /api/ai/interview/session
+   * Body: { applicationId, transcript?, summary?, score?, recommendation?, status? }
+   */
+  saveInterviewSession: async (applicationId: string, sessionData: any) => {
+    return apiClient.post<any>("/ai/interview/session", {
+      applicationId,
+      ...sessionData,
+    })
+  },
+
+  /** No backend /interviews schedule endpoint. */
+  scheduleInterview: async (_data: any) => {
+    return { success: false, error: "Interview scheduling not supported in this version." }
+  },
+
+  /** No backend /interviews/:id/feedback endpoint. */
+  submitFeedback: async (_id: string, _feedback: any) => {
+    return { success: false, error: "Feedback submission not supported in this version." }
   }
 }
