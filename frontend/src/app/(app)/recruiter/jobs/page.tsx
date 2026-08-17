@@ -57,8 +57,12 @@ export default function RecruiterJobs() {
   useEffect(() => {
     async function load() {
       try {
-        const data = await jobService.getJobs()
-        setJobs(data)
+        // Use employer-specific endpoint to see own jobs at all statuses
+        const res: any = await jobService.getMyJobs()
+        const jobsList = Array.isArray(res) ? res : res?.data?.jobs || res?.jobs || res?.data || []
+        setJobs(Array.isArray(jobsList) ? jobsList : [])
+      } catch {
+        setJobs([])
       } finally {
         setLoading(false)
       }
@@ -66,10 +70,16 @@ export default function RecruiterJobs() {
     load()
   }, [])
 
-  const filteredJobs = jobs.filter(job =>
-    job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    job.department.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const jobsArray = Array.isArray(jobs) ? jobs : []
+
+  const filteredJobs = jobsArray.filter(job => {
+    if (!job) return false
+    const title = job.title || ''
+    const dept = job.department || job.category || ''
+    const loc = job.location || ''
+    const search = searchTerm.toLowerCase()
+    return title.toLowerCase().includes(search) || dept.toLowerCase().includes(search) || loc.toLowerCase().includes(search)
+  })
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-12">
@@ -133,23 +143,27 @@ export default function RecruiterJobs() {
                     {loading ? (
                       [...Array(5)].map((_, i) => <JobRowSkeleton key={i} />)
                     ) : filteredJobs.length > 0 ? (
-                      filteredJobs.map(job => (
-                        <tr key={job.id} className="hover:bg-muted/30 transition-colors">
-                          <td className="td-cell font-semibold">{job.title}</td>
-                          <td className="td-cell text-muted-foreground">{job.department}</td>
-                          <td className="td-cell text-muted-foreground">{job.location}</td>
+                      filteredJobs.map((job, idx) => {
+                        const jobId = job._id || job.id || idx
+                        const deadline = job.deadline ? new Date(job.deadline).toLocaleDateString() : 'N/A'
+                        const applications = job.applicationCount ?? job.applications ?? 0
+                        return (
+                        <tr key={jobId} className="hover:bg-muted/30 transition-colors">
+                          <td className="td-cell font-semibold">{job.title || 'Untitled'}</td>
+                          <td className="td-cell text-muted-foreground">{job.department || job.category || '—'}</td>
+                          <td className="td-cell text-muted-foreground">{job.location || 'Remote'}</td>
                           <td className="td-cell text-center">
-                            <Badge variant="secondary">{job.applications}</Badge>
+                            <Badge variant="secondary">{applications}</Badge>
                           </td>
                           <td className="td-cell">
-                            <StatusBadge status={job.status} />
+                            <StatusBadge status={job.status || 'OPEN'} />
                           </td>
                           <td className="td-cell text-muted-foreground">
-                            {new Date(job.deadline).toLocaleDateString()}
+                            {deadline}
                           </td>
                           <td className="td-cell text-right">
                             <div className="flex items-center justify-end gap-1">
-                              <Button variant="ghost" size="icon" render={<Link href={`/recruiter/jobs/${job.id}`} />}>
+                              <Button variant="ghost" size="icon" render={<Link href={`/recruiter/jobs/${jobId}`} />}>
                                 <Eye className="w-4 h-4 text-muted-foreground" />
                               </Button>
                               <Button variant="ghost" size="icon">
@@ -161,7 +175,8 @@ export default function RecruiterJobs() {
                             </div>
                           </td>
                         </tr>
-                      ))
+                        )
+                      })
                     ) : (
                       <tr>
                         <td colSpan={7} className="text-center py-16 text-muted-foreground">
@@ -181,25 +196,30 @@ export default function RecruiterJobs() {
                     {[...Array(4)].map((_, i) => <JobCardSkeleton key={i} />)}
                   </div>
                 ) : filteredJobs.length > 0 ? (
-                  filteredJobs.map(job => (
-                    <Link key={job.id} href={`/recruiter/jobs/${job.id}`}>
+                  filteredJobs.map((job, idx) => {
+                    const jobId = job._id || job.id || idx
+                    const deadline = job.deadline ? new Date(job.deadline).toLocaleDateString() : 'N/A'
+                    const applications = job.applicationCount ?? job.applications ?? 0
+                    return (
+                    <Link key={String(jobId)} href={`/recruiter/jobs/${jobId}`}>
                       <div className="p-4 hover:bg-muted/30 transition-colors">
                         <div className="flex items-start justify-between gap-3 mb-2">
                           <div>
-                            <p className="font-semibold text-sm">{job.title}</p>
-                            <p className="text-xs text-muted-foreground">{job.department} · {job.location}</p>
+                            <p className="font-semibold text-sm">{job.title || 'Untitled'}</p>
+                            <p className="text-xs text-muted-foreground">{job.department || job.category || '—'} · {job.location || 'Remote'}</p>
                           </div>
-                          <StatusBadge status={job.status} />
+                          <StatusBadge status={job.status || 'OPEN'} />
                         </div>
                         <div className="flex items-center gap-3 mt-2">
-                          <Badge variant="secondary" className="text-xs">{job.applications} applicants</Badge>
+                          <Badge variant="secondary" className="text-xs">{applications} applicants</Badge>
                           <span className="text-xs text-muted-foreground">
-                            Due {new Date(job.deadline).toLocaleDateString()}
+                            Due {deadline}
                           </span>
                         </div>
                       </div>
                     </Link>
-                  ))
+                    )
+                  })
                 ) : (
                   <div className="text-center py-16 text-muted-foreground">
                     <Briefcase className="w-8 h-8 mx-auto mb-2 opacity-30" />

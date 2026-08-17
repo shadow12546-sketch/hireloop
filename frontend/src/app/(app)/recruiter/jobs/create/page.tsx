@@ -9,20 +9,27 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { ChevronLeft, Plus, Save, Send } from "lucide-react"
 
+import { jobService } from "@/services/jobService"
+
 export default function CreateJob() {
   const router = useRouter()
   const [submitting, setSubmitting] = useState<string | false>(false)
+  const [error, setError] = useState("")
+
+  const defaultDeadline = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
   
   const [form, setForm] = useState({
     title: "",
     department: "",
     location: "",
-    type: "Full-time",
-    experience: "",
-    salary: "",
+    type: "full-time",
+    workMode: "remote",
+    experience: "1-3 years",
+    salaryMin: "",
+    salaryMax: "",
     description: "",
     requirements: [""],
-    deadline: ""
+    deadline: defaultDeadline
   })
 
   const addRequirement = () => {
@@ -43,11 +50,46 @@ export default function CreateJob() {
   const handleSubmit = async (e: React.FormEvent, action: 'draft' | 'publish' = 'publish') => {
     e.preventDefault()
     setSubmitting(action)
-    // Simulate API call
-    await new Promise(r => setTimeout(r, 1000))
-    setSubmitting(false)
-    router.push("/recruiter/jobs")
+    setError("")
+
+    if (!form.title.trim()) {
+      setError("Please enter a job title.")
+      setSubmitting(false)
+      return
+    }
+
+    const validDeadline = form.deadline
+      ? new Date(form.deadline).toISOString()
+      : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+
+    const validDescription = form.description.trim().length >= 10
+      ? form.description.trim()
+      : `${form.title.trim()} role in ${form.department.trim() || 'Engineering'}. Detailed responsibilities and guidelines will be shared.`
+
+    const cleanSkills = form.requirements.filter((r) => r.trim().length > 0)
+
+    try {
+      await jobService.createJob({
+        title: form.title.trim(),
+        location: form.location.trim() || "Remote",
+        employmentType: form.type || "full-time",
+        workMode: form.workMode || "remote",
+        experience: form.experience.trim() || "1-3 years",
+        description: validDescription,
+        skills: cleanSkills,
+        deadline: validDeadline,
+        status: action === 'publish' ? 'OPEN' : 'OPEN',
+      })
+      router.push("/recruiter/jobs")
+    } catch (err: any) {
+      console.error("Failed to post job:", err)
+      setError(err?.message || err?.data?.message || "Failed to create job posting. Please check all fields.")
+    } finally {
+      setSubmitting(false)
+    }
   }
+
+  const minDate = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500 pb-12">
@@ -59,6 +101,12 @@ export default function CreateJob() {
         <h1 className="text-3xl font-bold tracking-tight">Create New Job</h1>
         <p className="text-muted-foreground mt-1">Fill out the details to post a new job opening.</p>
       </div>
+
+      {error && (
+        <div className="p-4 bg-destructive/10 border border-destructive/20 text-destructive rounded-xl text-sm font-medium">
+          {error}
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-8">
         <Card>
@@ -100,14 +148,32 @@ export default function CreateJob() {
             
             <div className="grid sm:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium leading-none">Work Mode / Type</label>
-                <Input 
-                  required 
-                  placeholder="e.g. Full-time" 
+                <label className="text-sm font-medium leading-none">Employment Type</label>
+                <select 
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   value={form.type} 
                   onChange={e => setForm({...form, type: e.target.value})} 
-                />
+                >
+                  <option value="full-time">Full-Time</option>
+                  <option value="part-time">Part-Time</option>
+                  <option value="contract">Contract</option>
+                  <option value="internship">Internship</option>
+                </select>
               </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium leading-none">Work Mode</label>
+                <select 
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  value={form.workMode} 
+                  onChange={e => setForm({...form, workMode: e.target.value})} 
+                >
+                  <option value="remote">Remote</option>
+                  <option value="onsite">Onsite</option>
+                  <option value="hybrid">Hybrid</option>
+                </select>
+              </div>
+
               <div className="space-y-2">
                 <label className="text-sm font-medium leading-none">Experience Required</label>
                 <Input 
@@ -115,14 +181,6 @@ export default function CreateJob() {
                   placeholder="e.g. 3-5 years" 
                   value={form.experience} 
                   onChange={e => setForm({...form, experience: e.target.value})} 
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium leading-none">Salary Range</label>
-                <Input 
-                  placeholder="e.g. $120k - $150k" 
-                  value={form.salary} 
-                  onChange={e => setForm({...form, salary: e.target.value})} 
                 />
               </div>
             </div>

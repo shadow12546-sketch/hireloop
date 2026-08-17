@@ -20,6 +20,8 @@ describe('Job creation and authorization', () => {
 
   test('employer cannot create a job without a company profile', async () => {
     const employer = await createEmployer();
+    const Company = require('../src/models/Company');
+    await Company.deleteMany({ owner: employer.user._id || employer.user.id });
     const result = await createJobForEmployer(employer.accessToken);
     expect(result.success).toBe(false);
   });

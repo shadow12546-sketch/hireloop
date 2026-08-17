@@ -15,7 +15,7 @@ const { ACTIVITY_ACTIONS } = require('../constants/activityActions');
 const createJob = asyncHandler(async (req, res) => {
   const company = await Company.findOne({ owner: req.user.id });
   if (!company) {
-    throw ApiError.badRequest('Create your company profile before posting a job (PUT /api/companies/me)');
+    throw ApiError.badRequest('Create a company profile before posting a job');
   }
 
   const job = await Job.create({
@@ -55,10 +55,17 @@ const listJobs = asyncHandler(async (req, res) => {
 
   const filter = {};
 
-  if (status) {
+  if (status && status !== 'all') {
     filter.status = status;
-  } else {
+  } else if (!status && req.query.mine !== 'true') {
     filter.status = JOB_STATUS.OPEN;
+  }
+
+  if (req.query.mine === 'true' && req.user) {
+    const company = await Company.findOne({ owner: req.user.id });
+    if (company) {
+      filter.company = company._id;
+    }
   }
 
   if (location) {

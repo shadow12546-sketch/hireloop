@@ -1,6 +1,7 @@
 "use client"
 import { jobService } from "@/services/jobService"
 import { candidateService } from "@/services/candidateService"
+import { applicationService } from "@/services/applicationService"
 
 import { useState, useEffect, use } from "react"
 import Link from "next/link"
@@ -15,22 +16,57 @@ export default function RecruiterJobDetails({ params }: { params: Promise<{ id: 
   const [candidates, setCandidates] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
+  const [deleting, setDeleting] = useState(false)
+
   useEffect(() => {
     async function load() {
       try {
-        const [jobData, allCandidates] = await Promise.all([
-          jobService.getJobById(resolvedParams.id),
-          candidateService.getAllCandidates()
+        const [jobRes, appsRes] = await Promise.all([
+          jobService.getJobById(resolvedParams.id).catch(() => null),
+          applicationService.getApplicationsForJob(resolvedParams.id).catch(() => [])
         ])
-        setJob(jobData)
-        // Simulate finding candidates for this specific role
-        setCandidates(allCandidates.filter(c => c.role === jobData?.title))
+        const jobObj = (jobRes as any)?.data?.job || (jobRes as any)?.job || jobRes || null
+        const appsList = Array.isArray(appsRes) ? appsRes : (appsRes as any)?.data?.applications || (appsRes as any)?.applications || (appsRes as any)?.data || []
+        
+        const candList = Array.isArray(appsList) ? appsList.map((app: any) => {
+          const name = typeof app.candidate === 'object' ? app.candidate?.name : app.candidateName || 'Applicant'
+          return {
+            id: app._id || app.id,
+            candidateId: typeof app.candidate === 'object' ? app.candidate?._id || app.candidate?.id : app.candidate || app.candidateId,
+            name,
+            email: typeof app.candidate === 'object' ? app.candidate?.email : app.candidateEmail || '',
+            stage: app.status || 'Applied',
+            status: app.status || 'Applied',
+            matchScore: app.aiMatchScore ?? 85,
+            avatar: name.charAt(0).toUpperCase(),
+            appliedDate: app.appliedAt ? new Date(app.appliedAt).toLocaleDateString() : 'Recently',
+          }
+        }) : []
+
+        setJob(jobObj)
+        setCandidates(candList)
+      } catch {
+        setJob(null)
+        setCandidates([])
       } finally {
         setLoading(false)
       }
     }
     load()
   }, [resolvedParams.id])
+
+  const handleCloseRole = async () => {
+    if (!job) return
+    try {
+      setDeleting(true)
+      await jobService.updateJob(resolvedParams.id, { status: "CLOSED" })
+      setJob({ ...job, status: "CLOSED" })
+    } catch (err) {
+      console.error("Failed to close role:", err)
+    } finally {
+      setDeleting(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -78,8 +114,13 @@ export default function RecruiterJobDetails({ params }: { params: Promise<{ id: 
           <Button variant="outline" className="gap-2">
             <Edit className="w-4 h-4" /> Edit Job
           </Button>
-          <Button variant="outline" className="gap-2 text-destructive hover:text-destructive hover:bg-destructive/10">
-            <Trash2 className="w-4 h-4" /> Close Role
+          <Button 
+            variant="outline" 
+            onClick={handleCloseRole}
+            disabled={deleting || job.status === "CLOSED"}
+            className="gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+          >
+            <Trash2 className="w-4 h-4" /> {job.status === "CLOSED" ? "Role Closed" : "Close Role"}
           </Button>
         </div>
       </div>
@@ -89,7 +130,7 @@ export default function RecruiterJobDetails({ params }: { params: Promise<{ id: 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Candidates Applied ({candidates.length})</CardTitle>
-              <Button variant="outline" size="sm" render={<Link href="/recruiter/kanban" />}>View in Kanban</Button>
+              <Button variant="outline" size="sm" render={<Link href={`/recruiter/kanban?jobId=${resolvedParams.id}`} />}>View in Kanban</Button>
             </CardHeader>
             <CardContent className="p-0">
               <div className="divide-y">
@@ -138,14 +179,14 @@ export default function RecruiterJobDetails({ params }: { params: Promise<{ id: 
                 <p className="text-sm text-muted-foreground mb-1">Total Applications</p>
                 <p className="text-2xl font-bold flex items-center gap-2">
                   <Users className="w-5 h-5 text-primary" />
-                  {job.applications}
+                  {candidates.length}
                 </p>
               </div>
               
               <div className="pt-4 border-t space-y-3">
                 <div>
                   <p className="text-xs text-muted-foreground mb-0.5">Created Date</p>
-                  <p className="text-sm font-medium">{new Date(job.created).toLocaleDateString()}</p>
+                  <p className="text-sm font-medium">{job.createdAt ? new Date(job.createdAt).toLocaleDateString() : '—'}</p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground mb-0.5">Application Deadline</p>

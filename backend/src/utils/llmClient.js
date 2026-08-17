@@ -1,5 +1,4 @@
 const Groq = require('groq-sdk');
-
 const env = require('../config/env');
 
 const groq = new Groq({
@@ -16,7 +15,7 @@ async function callLLMForJSON(systemPrompt, userPrompt) {
 
   try {
     const completion = await groq.chat.completions.create({
-      model: 'llama-3.3-70b-versatile',
+      model: 'openai/gpt-oss-120b',
       messages: [
         {
           role: 'system',
@@ -41,7 +40,13 @@ async function callLLMForJSON(systemPrompt, userPrompt) {
 
     return JSON.parse(content);
   } catch (error) {
-    console.error('[AI] Groq request failed:', error.message);
+    console.error('[AI] Groq request failed:', {
+      message: error.message,
+      status: error.status,
+      code: error.code,
+      type: error.type,
+    });
+
     throw new Error('LLM_CALL_FAILED');
   }
 }

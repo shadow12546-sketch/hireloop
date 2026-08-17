@@ -1,5 +1,6 @@
 "use client"
 import { candidateService } from "@/services/candidateService"
+import { applicationService } from "@/services/applicationService"
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
@@ -66,8 +67,20 @@ export default function CandidatesList() {
   useEffect(() => {
     async function load() {
       try {
-        const data = await candidateService.getAllCandidates()
-        setCandidates(data)
+        const apps = await applicationService.getEmployerApplications()
+        const candidateList = apps.map((app: any) => ({
+          id: app.candidateId || app._id,
+          userId: app.candidateId,
+          name: app.candidateName || "Candidate",
+          email: app.candidateEmail || "",
+          role: app.jobTitle || "Applicant",
+          matchScore: app.aiMatchScore ?? app.matchScore ?? 80,
+          status: app.status || "Applied",
+          appliedDate: app.appliedDate || new Date().toISOString(),
+        }))
+        setCandidates(candidateList)
+      } catch {
+        setCandidates([])
       } finally {
         setLoading(false)
       }

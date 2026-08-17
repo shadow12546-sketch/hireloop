@@ -1,9 +1,11 @@
 "use client"
 
 import * as React from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
+import { getCurrentUser } from "@/lib/auth"
 import {
   X, LayoutDashboard, Briefcase, Users, FileText, Calendar, Code2,
   BarChart3, Bell, Settings, ChevronRight, Search, Award, Building2,
@@ -186,17 +188,31 @@ export function MobileNav({ open, onClose }: MobileNavProps) {
 
         {/* User footer */}
         <div className="px-3 py-4 border-t">
-          <div className="flex items-center gap-3 rounded-xl p-3 hover:bg-muted/60 cursor-pointer transition-colors">
-            <div className="h-8 w-8 rounded-full gradient-violet flex items-center justify-center text-white font-bold text-sm shrink-0">
-              S
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold truncate">Sachin Verma</p>
-              <p className="text-xs text-muted-foreground truncate">{userRole}</p>
-            </div>
-          </div>
+          <MobileNavUser />
         </div>
       </aside>
     </>
+  )
+}
+
+function MobileNavUser() {
+  const [user, setUser] = useState(getCurrentUser())
+
+  useEffect(() => {
+    // Re-read from localStorage on every mount so a new login is always reflected.
+    setUser(getCurrentUser())
+  }, [])
+
+  const initial = user?.name?.[0]?.toUpperCase() ?? "U"
+  return (
+    <div className="flex items-center gap-3 rounded-xl p-3 hover:bg-muted/60 cursor-pointer transition-colors">
+      <div className="h-8 w-8 rounded-full gradient-violet flex items-center justify-center text-white font-bold text-sm shrink-0">
+        {initial}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold truncate">{user?.name ?? "User"}</p>
+        <p className="text-xs text-muted-foreground truncate capitalize">{user?.role ?? ""}</p>
+      </div>
+    </div>
   )
 }

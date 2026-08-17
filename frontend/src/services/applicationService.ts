@@ -1,38 +1,92 @@
-import { apiClient, IS_MOCK } from "@/lib/apiClient"
-import { mockApplications } from "@/lib/mockData"
-
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+import { apiClient } from "@/lib/apiClient"
 
 export const applicationService = {
+  /**
+   * GET /api/applications/mine — candidate's own applications
+   */
   getApplications: async () => {
-    if (IS_MOCK) {
-      await delay(500)
-      return mockApplications
+    return apiClient.get<any>("/applications/mine")
+  },
+
+  /**
+   * GET /api/applications/job/:jobId — employer listing applications for a specific job
+   */
+  getApplicationsForJob: async (jobId: string) => {
+    return apiClient.get<any>(`/applications/job/${jobId}`)
+  },
+
+  /**
+   * Helper for Employer pages to load applications across all their jobs.
+   */
+  getEmployerApplications: async () => {
+    try {
+      const jobsRes: any = await apiClient.get<any>("/jobs/mine/list")
+      const jobs = Array.isArray(jobsRes) ? jobsRes : jobsRes?.data?.jobs || jobsRes?.jobs || jobsRes?.data || []
+      
+      const allApps: any[] = []
+      for (const job of jobs) {
+        const jobId = job._id || job.id
+        if (!jobId) continue
+        try {
+          const appRes: any = await apiClient.get<any>(`/applications/job/${jobId}`)
+          const appsList = Array.isArray(appRes) ? appRes : appRes?.data?.applications || appRes?.applications || appRes?.data || []
+          if (Array.isArray(appsList)) {
+            appsList.forEach((app: any) => {
+              allApps.push({
+                ...app,
+                jobTitle: job.title || app.jobTitle || 'Job Role',
+                candidateName: typeof app.candidate === 'object' ? app.candidate?.name : app.candidateName || 'Applicant',
+                candidateEmail: typeof app.candidate === 'object' ? app.candidate?.email : app.candidateEmail || '',
+                candidateId: typeof app.candidate === 'object' ? app.candidate?._id || app.candidate?.id : app.candidate || app.candidateId,
+                appliedDate: app.appliedAt || app.createdAt || new Date().toISOString(),
+              })
+            })
+          }
+        } catch {
+          // ignore error for individual job
+        }
+      }
+      return allApps
+    } catch {
+      return []
     }
-    return apiClient.get<any[]>("/applications")
   },
 
   getApplicationById: async (id: string) => {
-    if (IS_MOCK) {
-      await delay(400)
-      return mockApplications.find(a => a.id === id)
-    }
     return apiClient.get<any>(`/applications/${id}`)
   },
 
-  updateApplicationStatus: async (id: string, status: string, notes?: string) => {
-    if (IS_MOCK) {
-      await delay(600)
-      return { success: true, status, notes }
+  /**
+   * PATCH /api/applications/:id/advance — advance to next stage
+   * Body: { toStatus: string, note?: string }
+   *
+   * POST /api/applications/:id/decision — final decision (OFFER or REJECTED)
+   * Body: { decision: "OFFER" | "REJECTED", note?: string }
+   */
+  updateApplicationStatus: async (id: string, status: string, note?: string) => {
+    if (status === "OFFER" || status === "REJECTED") {
+      return apiClient.post<{ success: boolean }>(
+        `/applications/${id}/decision`,
+        { decision: status, note: note || "" }
+      )
     }
-    return apiClient.patch<{ success: boolean }>(`/applications/${id}/status`, { status, notes })
+    return apiClient.patch<{ success: boolean }>(
+      `/applications/${id}/advance`,
+      { toStatus: status, note: note || "" }
+    )
   },
 
-  applyForJob: async (jobId: string, candidateData: any) => {
-    if (IS_MOCK) {
-      await delay(800)
-      return { success: true, applicationId: Math.random().toString() }
-    }
-    return apiClient.post<{ success: boolean; applicationId: string }>("/applications", { jobId, ...candidateData })
+  /**
+   * POST /api/applications — apply for a job
+   * Body: { jobId: string, resumeId?: string }
+   * Requires candidate role.
+   */
+  applyForJob: async (jobId: string, resumeId?: string) => {
+    const body: Record<string, string> = { jobId }
+    if (resumeId) body.resumeId = resumeId
+    return apiClient.post<{ success: boolean; data: { application: any } }>(
+      "/applications",
+      body
+    )
   }
 }

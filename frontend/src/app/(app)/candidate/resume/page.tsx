@@ -8,58 +8,172 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+
 import { aiService } from "@/services/aiService"
+import { candidateService } from "@/services/candidateService"
+
 import {
   CheckCircle2,
+  Download,
   Eye,
   FileText,
   RefreshCw,
   Trash2,
   UploadCloud,
 } from "lucide-react"
+
+import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
-import { useRef, useState } from "react"
+
+interface ResumeState {
+  id: string
+  name: string
+  date: string
+  size: string
+}
 
 export default function CandidateResume() {
-  const [isUploading, setIsUploading] = useState(false)
-  const [uploadProgress, setUploadProgress] = useState(0)
-
-  const [resume, setResume] = useState<{
-    name: string
-    date: string
-    size: string
-  } | null>(null)
-
-  const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
+
+  const fileInputRef =
+    useRef<HTMLInputElement>(null)
+
+  const [resume, setResume] =
+    useState<ResumeState | null>(null)
+
+  const [loading, setLoading] =
+    useState(true)
+
+  const [isUploading, setIsUploading] =
+    useState(false)
+
+  const [uploadProgress, setUploadProgress] =
+    useState(0)
+
+  const [deleting, setDeleting] =
+    useState(false)
+
+  const loadResume = async () => {
+    try {
+      setLoading(true)
+
+      const response =
+        await candidateService.getProfile()
+
+      const profile =
+        response?.data?.profile
+
+      const activeResume =
+        profile?.activeResume
+
+      if (!activeResume) {
+        setResume(null)
+        return
+      }
+
+      const id =
+        activeResume._id ||
+        activeResume.id
+
+      if (!id) {
+        setResume(null)
+        return
+      }
+
+      setResume({
+        id,
+        name:
+          activeResume.originalFilename ||
+          "Resume",
+        date: activeResume.uploadedAt
+          ? new Date(
+              activeResume.uploadedAt
+            ).toLocaleDateString(
+              "en-US",
+              {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              }
+            )
+          : "Unknown",
+        size:
+          typeof activeResume.fileSize ===
+          "number"
+            ? `${(
+                activeResume.fileSize /
+                (1024 * 1024)
+              ).toFixed(2)} MB`
+            : "Unknown",
+      })
+    } catch (error) {
+      console.error(
+        "Failed to load resume:",
+        error
+      )
+
+      setResume(null)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadResume()
+  }, [])
 
   const handleFileUpload = async (
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
-    const file = e.target.files?.[0]
+    const file =
+      e.target.files?.[0]
 
-    if (!file) {
-      return
-    }
+    if (!file) return
 
-    // Validate file type
     const allowedTypes = [
       "application/pdf",
       "application/msword",
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     ]
 
-    if (!allowedTypes.includes(file.type)) {
-      alert("Please upload a PDF or DOC/DOCX file.")
+    const extension =
+      file.name
+        .split(".")
+        .pop()
+        ?.toLowerCase()
+
+    const allowedExtensions = [
+      "pdf",
+      "doc",
+      "docx",
+    ]
+
+    if (
+      !allowedTypes.includes(file.type) &&
+      !(
+        extension &&
+        allowedExtensions.includes(
+          extension
+        )
+      )
+    ) {
+      alert(
+        "Please upload a PDF, DOC, or DOCX file."
+      )
+
       e.target.value = ""
       return
     }
 
-    // Validate file size: 5 MB
-    const maxSize = 5 * 1024 * 1024
+    // Backend blueprint allows 10 MB.
+    const maxSize =
+      10 * 1024 * 1024
 
     if (file.size > maxSize) {
-      alert("Resume size must be less than 5 MB.")
+      alert(
+        "Resume size must be less than 10 MB."
+      )
+
       e.target.value = ""
       return
     }
@@ -68,19 +182,23 @@ export default function CandidateResume() {
     setUploadProgress(10)
 
     const interval = setInterval(() => {
-      setUploadProgress((prev) => {
-        if (prev >= 85) {
+      setUploadProgress((previous) => {
+        if (previous >= 85) {
           return 85
         }
 
-        return prev + 10
+        return previous + 10
       })
     }, 500)
 
     try {
-      const parsedData = await aiService.parseResume(file)
+      const parsedData =
+        await aiService.parseResume(
+          file
+        )
 
       clearInterval(interval)
+
       setUploadProgress(100)
 
       if (typeof window !== "undefined") {
@@ -90,27 +208,64 @@ export default function CandidateResume() {
         )
       }
 
-      setResume({
-        name: file.name,
-        date: new Date().toLocaleDateString("en-US", {
-          month: "short",
-          day: "numeric",
-          year: "numeric",
-        }),
-        size: `${(file.size / (1024 * 1024)).toFixed(2)} MB`,
-      })
+      const resumeResponse =
+        await candidateService.getProfile()
+
+      const activeResume =
+        resumeResponse?.data?.profile
+          ?.activeResume
+
+      if (activeResume) {
+        const resumeId =
+          activeResume._id ||
+          activeResume.id
+
+        setResume({
+          id: resumeId,
+          name:
+            activeResume.originalFilename ||
+            file.name,
+          date: activeResume.uploadedAt
+            ? new Date(
+                activeResume.uploadedAt
+              ).toLocaleDateString(
+                "en-US",
+                {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                }
+              )
+            : new Date().toLocaleDateString(
+                "en-US"
+              ),
+          size:
+            typeof activeResume.fileSize ===
+            "number"
+              ? `${(
+                  activeResume.fileSize /
+                  (1024 * 1024)
+                ).toFixed(2)} MB`
+              : `${(
+                  file.size /
+                  (1024 * 1024)
+                ).toFixed(2)} MB`,
+        })
+      }
 
       setTimeout(() => {
         router.push(
           "/candidate/profile?action=review_parsed_resume"
         )
-      }, 1000)
+      }, 500)
     } catch (error) {
       clearInterval(interval)
 
-      console.error("Resume parsing failed:", error)
+      console.error(
+        "Resume upload/parsing failed:",
+        error
+      )
 
-      setIsUploading(false)
       setUploadProgress(0)
 
       alert(
@@ -119,25 +274,81 @@ export default function CandidateResume() {
           : "Unable to upload and parse resume. Please try again."
       )
     } finally {
+      setIsUploading(false)
+
       if (fileInputRef.current) {
         fileInputRef.current.value = ""
       }
     }
   }
 
-  const handleDelete = () => {
-    if (!resume) {
-      return
-    }
+  const handleDelete = async () => {
+    if (!resume?.id) return
 
-    if (confirm("Are you sure you want to delete your resume?")) {
+    const confirmed = confirm(
+      "Are you sure you want to delete your resume?"
+    )
+
+    if (!confirmed) return
+
+    try {
+      setDeleting(true)
+
+      await candidateService.deleteResume(
+        resume.id
+      )
+
       setResume(null)
+
+      alert(
+        "Resume deleted successfully."
+      )
+    } catch (error) {
+      console.error(
+        "Failed to delete resume:",
+        error
+      )
+
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Failed to delete resume."
+      )
+    } finally {
+      setDeleting(false)
     }
   }
 
-  const handlePreview = () => {
-    alert(
-      "Resume preview will be available after the resume is stored in the backend."
+  const handleDownload = async () => {
+    if (!resume?.id) return
+    try {
+      await candidateService.downloadResume(resume.id, resume.name)
+    } catch (error) {
+      console.error("Failed to download resume:", error)
+      alert("Unable to download resume.")
+    }
+  }
+
+  const handlePreview = async () => {
+    if (!resume?.id) return
+
+    try {
+      await candidateService.downloadResume(resume.id, resume.name)
+    } catch (error) {
+      console.error("Failed to preview resume:", error)
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Unable to preview resume."
+      )
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex h-[50vh] items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
     )
   }
 
@@ -149,16 +360,20 @@ export default function CandidateResume() {
         </h1>
 
         <p className="text-muted-foreground mt-1">
-          Upload and manage your resume for applications and AI matching.
+          Upload and manage your resume for
+          applications and AI matching.
         </p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Current Resume</CardTitle>
+          <CardTitle>
+            Current Resume
+          </CardTitle>
 
           <CardDescription>
-            This resume will be used for AI parsing and quick apply.
+            This resume will be used for AI
+            parsing and quick apply.
           </CardDescription>
         </CardHeader>
 
@@ -177,12 +392,15 @@ export default function CandidateResume() {
 
                   <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
                     <span>
-                      Uploaded: {resume.date}
+                      Uploaded:{" "}
+                      {resume.date}
                     </span>
 
                     <span>•</span>
 
-                    <span>{resume.size}</span>
+                    <span>
+                      {resume.size}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -201,11 +419,24 @@ export default function CandidateResume() {
                 <Button
                   variant="outline"
                   size="sm"
+                  className="w-full sm:w-auto gap-2"
+                  onClick={handleDownload}
+                >
+                  <Download className="w-4 h-4" />
+                  Download
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={deleting}
                   className="w-full sm:w-auto gap-2 text-destructive hover:text-destructive"
                   onClick={handleDelete}
                 >
                   <Trash2 className="w-4 h-4" />
-                  Delete
+                  {deleting
+                    ? "Deleting..."
+                    : "Delete"}
                 </Button>
               </div>
             </div>
@@ -219,10 +450,13 @@ export default function CandidateResume() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Upload New Resume</CardTitle>
+          <CardTitle>
+            Upload New Resume
+          </CardTitle>
 
           <CardDescription>
-            Upload a new PDF or DOCX file. Max size 5MB.
+            Upload a new PDF, DOC, or DOCX
+            file. Max size 10MB.
           </CardDescription>
         </CardHeader>
 
@@ -237,8 +471,10 @@ export default function CandidateResume() {
                 id="resume-upload"
                 type="file"
                 className="hidden"
-                accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                onChange={handleFileUpload}
+                accept=".pdf,.doc,.docx"
+                onChange={
+                  handleFileUpload
+                }
               />
 
               <div className="w-16 h-16 bg-primary/10 text-primary rounded-full flex items-center justify-center mx-auto mb-4">
@@ -250,11 +486,12 @@ export default function CandidateResume() {
               </h3>
 
               <p className="text-muted-foreground">
-                Supported formats: PDF, DOC, DOCX
+                Supported formats: PDF,
+                DOC, DOCX
               </p>
 
               <p className="text-xs text-muted-foreground mt-2">
-                Maximum file size: 5 MB
+                Maximum file size: 10 MB
               </p>
             </label>
           ) : (
@@ -275,11 +512,13 @@ export default function CandidateResume() {
               </div>
 
               <p className="text-sm text-muted-foreground">
-                {uploadProgress}% Complete
+                {uploadProgress}%
+                Complete
               </p>
 
               <p className="text-xs text-muted-foreground mt-4">
-                Running AI extraction and parsing...
+                Uploading and running AI
+                extraction...
               </p>
             </div>
           )}
@@ -296,13 +535,51 @@ export default function CandidateResume() {
             </h4>
 
             <p className="text-sm opacity-90">
-              Your resume has been successfully parsed. We&apos;ve
-              updated your profile skills and experience section based
-              on the contents.
+              Your resume has been uploaded
+              and parsed. Review the extracted
+              information before saving your
+              profile.
             </p>
           </div>
         </div>
       )}
     </div>
   )
+}
+
+/**
+ * Preview needs authentication because
+ * GET /api/resumes/:id is protected.
+ */
+async function fetchResumeBlob(
+  resumeId: string
+): Promise<Blob> {
+  const token =
+    typeof window !== "undefined"
+      ? localStorage.getItem(
+          "accessToken"
+        )
+      : null
+
+  const response = await fetch(
+    `${
+      process.env.NEXT_PUBLIC_API_BASE_URL ??
+      "http://localhost:5000/api"
+    }/resumes/${resumeId}`,
+    {
+      headers: token
+        ? {
+            Authorization: `Bearer ${token}`,
+          }
+        : {},
+    }
+  )
+
+  if (!response.ok) {
+    throw new Error(
+      "Unable to load resume preview."
+    )
+  }
+
+  return response.blob()
 }

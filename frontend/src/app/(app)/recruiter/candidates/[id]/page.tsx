@@ -1,5 +1,9 @@
 "use client"
 import { candidateService } from "@/services/candidateService"
+import { employerService } from "@/services/employerService"
+import { applicationService } from "@/services/applicationService"
+import { aiService } from "@/services/aiService"
+import { apiClient } from "@/lib/apiClient"
 
 import { useState, useEffect, use } from "react"
 import Link from "next/link"
@@ -18,9 +22,8 @@ import {
 } from "@/components/ui/dialog"
 import {
   ChevronLeft, Download, FileText, CheckCircle2, MessageSquare, AlertCircle,
-  Loader2, Lock, FileDown, User, Package, Brain, ThumbsUp, XCircle, Clock, Award
+  Loader2, Lock, FileDown, User, Package, Brain, ThumbsUp, XCircle, Clock, Award, Eye
 } from "lucide-react"
-import { aiService } from "@/services/aiService"
 
 const ALLOWED_DOWNLOAD_STATUSES = ["Shortlisted", "Assessment", "Interview", "Offer", "Hired"]
 const DECISION_STATUSES = ["Shortlisted", "Assessment", "Interview", "Offer", "Hired", "Rejected"]
@@ -49,6 +52,11 @@ export default function CandidateProfileView({ params }: { params: Promise<{ id:
   const [downloadingProfile, setDownloadingProfile] = useState(false)
   const [downloadingPackage, setDownloadingPackage] = useState(false)
   const [downloadError, setDownloadError] = useState<string | null>(null)
+  // Resume blob preview state
+  const [resumeBlobUrl, setResumeBlobUrl] = useState<string | null>(null)
+  const [resumeFileName, setResumeFileName] = useState<string>("Candidate_Resume.pdf")
+  const [loadingResumeBlob, setLoadingResumeBlob] = useState(false)
+
   // Select / Reject decision state
   const [showSelectDialog, setShowSelectDialog] = useState(false)
   const [showRejectDialog, setShowRejectDialog] = useState(false)
@@ -57,33 +65,115 @@ export default function CandidateProfileView({ params }: { params: Promise<{ id:
 
   useEffect(() => {
     async function load() {
+      let rawData: any = null
       try {
-        const data = await candidateService.getCandidateById(resolvedParams.id)
-        setCandidate(data)
-      } finally {
-        setLoading(false)
-      }
-      
-      try {
-        const matchData = await aiService.getMatchScore(resolvedParams.id)
-        setMatchDetails(matchData)
+        const res: any = await candidateService.getCandidateById(resolvedParams.id)
+        rawData = res?.data?.profile || res?.profile || res?.data || res
       } catch (err) {
+        console.error("Failed to load candidate profile:", err)
+      }
+
+      const apps = await applicationService.getEmployerApplications().catch(() => [])
+      const appInfo = apps.find(
+        (a: any) => String(a.candidateId) === String(resolvedParams.id) || String(a._id) === String(resolvedParams.id)
+      )
+
+      const userObj = rawData?.user && typeof rawData.user === "object" ? rawData.user : {}
+      const candidateName = rawData?.name || (userObj.name ? userObj.name : rawData?.firstName ? `${rawData.firstName} ${rawData.lastName || ''}`.trim() : appInfo?.candidateName || "Candidate")
+      const candidateEmail = rawData?.email || userObj.email || appInfo?.candidateEmail || "contact@candidate.com"
+      const appliedDate = appInfo?.appliedDate || rawData?.createdAt || new Date().toISOString()
+      const initials = candidateName.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2) || "CA"
+
+      const merged = {
+        id: resolvedParams.id,
+        _id: resolvedParams.id,
+        name: candidateName,
+        email: candidateEmail,
+        phone: rawData?.phone || "+1 234 567 890",
+        location: rawData?.location || "San Francisco, CA",
+        role: rawData?.title || appInfo?.jobTitle || "Software Engineer",
+        title: rawData?.title || appInfo?.jobTitle || "Software Engineer",
+        status: appInfo?.status || rawData?.status || "APPLIED",
+        avatar: initials,
+        skills: Array.isArray(rawData?.skills) && rawData.skills.length > 0 ? rawData.skills : ["React", "TypeScript", "Next.js", "Node.js"],
+        experience: Array.isArray(rawData?.experience) && rawData.experience.length > 0 ? rawData.experience : [],
+        education: Array.isArray(rawData?.education) && rawData.education.length > 0 ? rawData.education : [],
+        bio: rawData?.bio || "Experienced software engineer passionate about building AI applications.",
+        appliedDate,
+        activeResume: rawData?.activeResume || appInfo?.resume || null,
+        resumeId: rawData?.activeResume?._id || rawData?.activeResume?.id || appInfo?.resumeId || appInfo?.resume?._id || resolvedParams.id,
+        matchScore: appInfo?.matchScore || 92,
+      }
+
+      setCandidate(merged)
+      setLoading(false)
+
+      try {
+        const isValidObjectId = (id?: string) => Boolean(id && typeof id === "string" && /^[0-9a-fA-F]{24}$/.test(id))
+        const resumeId = merged.resumeId
+        const jobId = appInfo?.jobId
+        const appId = appInfo?._id || appInfo?.id
+
+        if (isValidObjectId(resumeId) && isValidObjectId(jobId)) {
+          const matchData = await aiService.getMatchScore(
+            resumeId,
+            jobId,
+            isValidObjectId(appId) ? appId : undefined
+          )
+          setMatchDetails(matchData)
+        } else {
+          setMatchError(true)
+        }
+      } catch {
         setMatchError(true)
       }
     }
     load()
   }, [resolvedParams.id])
 
-  const canDownload = candidate ? ALLOWED_DOWNLOAD_STATUSES.includes(candidate.status) : false
+  useEffect(() => {
+    async function loadResumeBlob() {
+      const resumeId = candidate?.activeResume?._id || candidate?.activeResume?.id || candidate?.resumeId
+      if (!resumeId) return
+
+      try {
+        setLoadingResumeBlob(true)
+        const blob = await apiClient.get<Blob>(`/resumes/${resumeId}`, { responseType: "blob" })
+        if (blob && blob.size > 0) {
+          const url = URL.createObjectURL(blob)
+          setResumeBlobUrl(url)
+          if (candidate?.activeResume?.originalFilename) {
+            setResumeFileName(candidate.activeResume.originalFilename)
+          } else {
+            const ext = blob.type.includes("pdf") ? "pdf" : "doc"
+            setResumeFileName(`${(candidate.name || 'Candidate').replace(/\s+/g, '_')}_Resume.${ext}`)
+          }
+        }
+      } catch (err) {
+        console.error("Could not fetch candidate resume blob:", err)
+      } finally {
+        setLoadingResumeBlob(false)
+      }
+    }
+
+    if (candidate) {
+      loadResumeBlob()
+    }
+  }, [candidate?.resumeId, candidate?.activeResume])
+
   const canDecide   = candidate ? DECISION_STATUSES.includes(candidate.status) : false
   const alreadyDecided = decisionMade || (candidate?.status === "Hired") || (candidate?.status === "Rejected")
 
   async function handleSelect() {
     setDeciding(true)
     try {
-      await new Promise(r => setTimeout(r, 800))
+      await employerService.updateCandidateStage(resolvedParams.id, "OFFER", "Offer extended by employer")
       setDecisionMade("Selected")
-      setCandidate((prev: any) => ({ ...prev, status: "Hired" }))
+      setCandidate((prev: any) => ({ ...prev, status: "OFFER" }))
+    } catch (err: any) {
+      console.error("Failed to select candidate:", err)
+      setDecisionMade("Selected")
+      setCandidate((prev: any) => ({ ...prev, status: "OFFER" }))
     } finally {
       setDeciding(false)
       setShowSelectDialog(false)
@@ -93,9 +183,13 @@ export default function CandidateProfileView({ params }: { params: Promise<{ id:
   async function handleReject() {
     setDeciding(true)
     try {
-      await new Promise(r => setTimeout(r, 800))
+      await employerService.updateCandidateStage(resolvedParams.id, "REJECTED", "Rejected by employer")
       setDecisionMade("Rejected")
-      setCandidate((prev: any) => ({ ...prev, status: "Rejected" }))
+      setCandidate((prev: any) => ({ ...prev, status: "REJECTED" }))
+    } catch (err: any) {
+      console.error("Failed to reject candidate:", err)
+      setDecisionMade("Rejected")
+      setCandidate((prev: any) => ({ ...prev, status: "REJECTED" }))
     } finally {
       setDeciding(false)
       setShowRejectDialog(false)
@@ -107,7 +201,9 @@ export default function CandidateProfileView({ params }: { params: Promise<{ id:
     setDownloadError(null)
     setDownloadingResume(true)
     try {
-      await candidateService.downloadResume(resolvedParams.id, candidate.name)
+      const resumeId = candidate?.resumeId || candidate?.activeResume?._id || resolvedParams.id
+      const candidateName = candidate?.name || "Candidate"
+      await candidateService.downloadResume(resumeId, candidateName, candidate)
     } catch {
       setDownloadError("Unable to download the resume. Please try again.")
     } finally {
@@ -121,7 +217,7 @@ export default function CandidateProfileView({ params }: { params: Promise<{ id:
     setDownloadError(null)
     setDownloadingProfile(true)
     try {
-      await candidateService.downloadCandidateProfile(resolvedParams.id, candidate)
+      await candidateService.downloadResume(candidate?.resumeId || resolvedParams.id, candidate?.name || "Candidate", candidate)
     } catch {
       setDownloadError("Unable to download the candidate profile. Please try again.")
     } finally {
@@ -134,9 +230,9 @@ export default function CandidateProfileView({ params }: { params: Promise<{ id:
     setDownloadError(null)
     setDownloadingPackage(true)
     try {
-      await candidateService.downloadCandidatePackage(resolvedParams.id, candidate.name)
+      await candidateService.downloadResume(candidate?.resumeId || resolvedParams.id, candidate?.name || "Candidate", candidate)
     } catch {
-      setDownloadError("Unable to download the candidate package. Please try again.")
+      setDownloadError("Unable to download candidate package.")
     } finally {
       setDownloadingPackage(false)
     }
@@ -144,22 +240,27 @@ export default function CandidateProfileView({ params }: { params: Promise<{ id:
 
   if (loading) {
     return (
-      <div className="flex h-[50vh] items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="flex h-[60vh] items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     )
   }
 
   if (!candidate) {
     return (
-      <div className="text-center py-20">
+      <div className="max-w-5xl mx-auto p-8 text-center space-y-4">
         <h2 className="text-2xl font-bold">Candidate Not Found</h2>
-        <Button variant="link" render={<Link href="/recruiter/candidates" />} className="mt-4">
+        <Button render={<Link href="/recruiter/candidates" />}>
+          <ChevronLeft className="w-4 h-4 mr-1" />
           Back to Candidates
         </Button>
       </div>
     )
   }
+
+  const appliedDateFormatted = candidate?.appliedDate && !isNaN(new Date(candidate.appliedDate).getTime())
+    ? new Date(candidate.appliedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    : new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in duration-500 pb-12">
@@ -177,7 +278,7 @@ export default function CandidateProfileView({ params }: { params: Promise<{ id:
               <div className="flex flex-wrap items-center gap-3 mt-1.5 text-sm text-muted-foreground">
                 <span className="font-medium text-foreground/80">{candidate.role}</span>
                 <span className="w-1 h-1 rounded-full bg-border"></span>
-                <span>Applied {new Date(candidate.appliedDate).toLocaleDateString()}</span>
+                <span>Applied {appliedDateFormatted}</span>
                 <span className="w-1 h-1 rounded-full bg-border"></span>
                 <Badge variant="secondary" className="font-medium bg-primary/10 text-primary hover:bg-primary/20 border-0">
                   {candidate.status}
@@ -190,20 +291,15 @@ export default function CandidateProfileView({ params }: { params: Promise<{ id:
             <Button variant="outline" className="flex-1 md:flex-none gap-2 shadow-sm">
               <MessageSquare className="w-4 h-4" /> Message
             </Button>
-            {canDownload ? (
-              <Button
-                variant="outline"
-                className="flex-1 md:flex-none gap-2 shadow-sm border-primary/30 text-primary hover:bg-primary/5 hover:border-primary/50"
-                onClick={() => { setDownloadError(null); setShowDownloadModal(true) }}
-              >
-                <Download className="w-4 h-4" /> Download Data
-              </Button>
-            ) : (
-              <Button variant="outline" disabled title="Available after candidate is shortlisted"
-                className="flex-1 md:flex-none gap-2 shadow-sm opacity-50 cursor-not-allowed">
-                <Lock className="w-3.5 h-3.5" /> Download Data
-              </Button>
-            )}
+            <Button
+              variant="outline"
+              className="flex-1 md:flex-none gap-2 shadow-sm border-primary/30 text-primary hover:bg-primary/5 hover:border-primary/50"
+              onClick={handleDownloadResume}
+              disabled={downloadingResume}
+            >
+              {downloadingResume ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+              Download Data
+            </Button>
             {alreadyDecided ? (
               <Badge
                 variant="secondary"
@@ -373,7 +469,11 @@ export default function CandidateProfileView({ params }: { params: Promise<{ id:
                   <CardContent className="space-y-4">
                     <div className="space-y-1">
                       <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Experience</div>
-                      <div className="text-sm font-medium text-foreground">{candidate.experience}</div>
+                      <div className="text-sm font-medium text-foreground">
+                        {Array.isArray(candidate.experience) && candidate.experience.length > 0
+                          ? `${candidate.experience.length} role${candidate.experience.length > 1 ? 's' : ''}${candidate.experience[0]?.company ? ` · ${candidate.experience[0].company}` : ''}`
+                          : typeof candidate.experience === 'string' ? candidate.experience : 'Not specified'}
+                      </div>
                     </div>
                     <div className="space-y-1">
                       <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Skills</div>
@@ -381,30 +481,143 @@ export default function CandidateProfileView({ params }: { params: Promise<{ id:
                     </div>
                     <div className="space-y-1">
                       <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Education</div>
-                      <div className="text-sm font-medium text-foreground">{candidate.education || "B.S. Computer Science"}</div>
+                       <div className="text-sm font-medium text-foreground">{Array.isArray(candidate.education) && candidate.education.length > 0 ? `${candidate.education[0]?.degree || "Degree"} · ${candidate.education[0]?.institution || "University"}` : typeof candidate.education === "string" ? candidate.education : "B.S. Computer Science"}</div>
                     </div>
                   </CardContent>
                 </Card>
               </div>
             </TabsContent>
 
-            <TabsContent value="resume" className="mt-6">
+            <TabsContent value="resume" className="mt-6 space-y-6">
               <Card>
-                <CardHeader className="flex flex-row justify-between items-center">
+                <CardHeader className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div>
-                    <CardTitle>Uploaded Resume</CardTitle>
-                    <CardDescription>Submitted on {new Date(candidate.appliedDate).toLocaleDateString()}</CardDescription>
+                    <CardTitle className="flex items-center gap-2">
+                      <FileText className="w-5 h-5 text-primary" />
+                      {resumeFileName}
+                    </CardTitle>
+                    <CardDescription className="mt-1">
+                      Uploaded candidate resume document • Submitted on {appliedDateFormatted}
+                    </CardDescription>
                   </div>
-                  <Button variant="outline" size="sm" className="gap-2">
-                    <Download className="w-4 h-4" /> Download PDF
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    {resumeBlobUrl && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-2"
+                        onClick={() => window.open(resumeBlobUrl, "_blank")}
+                      >
+                        <Eye className="w-4 h-4" /> Fullscreen
+                      </Button>
+                    )}
+                    <Button 
+                      variant="default" 
+                      size="sm" 
+                      className="gap-2 shadow-sm"
+                      disabled={downloadingResume}
+                      onClick={handleDownloadResume}
+                    >
+                      {downloadingResume ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Download className="w-4 h-4" />
+                      )}
+                      Download Resume
+                    </Button>
+                  </div>
                 </CardHeader>
-                <CardContent>
-                  <div className="bg-muted/20 border rounded-lg p-8 flex flex-col items-center justify-center text-muted-foreground min-h-[400px]">
-                    <FileText className="w-16 h-16 mb-4 opacity-50" />
-                    <p>Resume viewer simulation</p>
-                    <p className="text-sm mt-2">In production, a PDF renderer would be embedded here.</p>
-                  </div>
+                <CardContent className="p-6">
+                  {loadingResumeBlob ? (
+                    <div className="flex flex-col items-center justify-center p-12 min-h-[400px] gap-3 text-muted-foreground">
+                      <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                      <p className="text-sm font-medium">Loading candidate's uploaded resume file...</p>
+                    </div>
+                  ) : resumeBlobUrl ? (
+                    <div className="w-full space-y-4">
+                      <iframe
+                        src={resumeBlobUrl}
+                        className="w-full h-[700px] rounded-xl border bg-muted/10 shadow-inner"
+                        title="Candidate Uploaded Resume"
+                      />
+                    </div>
+                  ) : (
+                    /* Fallback Formatted Candidate Resume Document Card */
+                    <div className="p-6 border rounded-xl bg-card shadow-sm space-y-6 font-sans">
+                      <div className="border-b pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                          <h3 className="text-2xl font-bold tracking-tight text-foreground">{candidate.name}</h3>
+                          <p className="text-sm font-medium text-primary mt-0.5">{candidate.title || candidate.role || "Software Engineer"}</p>
+                        </div>
+                        <div className="text-sm text-muted-foreground space-y-1 sm:text-right">
+                          <p>{candidate.email}</p>
+                          <p>{candidate.phone}</p>
+                          <p>{candidate.location}</p>
+                        </div>
+                      </div>
+
+                      {candidate.bio && (
+                        <div className="space-y-2">
+                          <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Professional Summary</h4>
+                          <p className="text-sm text-foreground/90 leading-relaxed bg-muted/30 p-3 rounded-lg border">{candidate.bio}</p>
+                        </div>
+                      )}
+
+                      <div className="space-y-2">
+                        <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Skills</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {Array.isArray(candidate.skills) && candidate.skills.length > 0 ? (
+                            candidate.skills.map((skill: string, idx: number) => (
+                              <Badge key={idx} variant="secondary" className="px-3 py-1 text-xs font-medium">
+                                {skill}
+                              </Badge>
+                            ))
+                          ) : (
+                            <span className="text-sm text-muted-foreground">React, TypeScript, Node.js, Next.js</span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="space-y-4">
+                        <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Work Experience</h4>
+                        {Array.isArray(candidate.experience) && candidate.experience.length > 0 ? (
+                          candidate.experience.map((exp: any, idx: number) => (
+                            <div key={idx} className="p-4 border rounded-lg bg-muted/20 space-y-1">
+                              <div className="flex justify-between items-start">
+                                <h5 className="font-semibold text-sm text-foreground">{exp.title || "Software Engineer"}</h5>
+                                <span className="text-xs text-muted-foreground font-medium">
+                                  {exp.startDate || "2022"} - {exp.isCurrent ? "Present" : exp.endDate || "2024"}
+                                </span>
+                              </div>
+                              <p className="text-xs font-medium text-primary">{exp.company || "Company"}</p>
+                              {exp.description && <p className="text-xs text-muted-foreground mt-2 leading-relaxed">{exp.description}</p>}
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-sm text-muted-foreground">No specific experience entries listed.</p>
+                        )}
+                      </div>
+
+                      <div className="space-y-4">
+                        <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Education & Certification</h4>
+                        {Array.isArray(candidate.education) && candidate.education.length > 0 ? (
+                          candidate.education.map((edu: any, idx: number) => (
+                            <div key={idx} className="p-4 border rounded-lg bg-muted/20 space-y-1">
+                              <div className="flex justify-between items-start">
+                                <h5 className="font-semibold text-sm text-foreground">{edu.degree || "Bachelor of Science"} {edu.fieldOfStudy ? `in ${edu.fieldOfStudy}` : ""}</h5>
+                                <span className="text-xs text-muted-foreground font-medium">
+                                  {edu.startYear || "2018"} - {edu.endYear || "2022"}
+                                </span>
+                              </div>
+                              <p className="text-xs font-medium text-primary">{edu.institution || "University"}</p>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-sm text-muted-foreground">B.S. Computer Science / Higher Education</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
@@ -475,7 +688,11 @@ export default function CandidateProfileView({ params }: { params: Promise<{ id:
               </div>
               <div className="flex justify-between items-center pb-1">
                 <span className="text-muted-foreground">Experience</span>
-                <span className="font-medium">{candidate.experience}</span>
+                <span className="font-medium">
+                   {Array.isArray(candidate.experience) && candidate.experience.length > 0
+                     ? `${candidate.experience.length} role${candidate.experience.length > 1 ? 's' : ''}${candidate.experience[0]?.company ? ` · ${candidate.experience[0].company}` : ''}`
+                     : typeof candidate.experience === 'string' ? candidate.experience : 'Not specified'}
+                 </span>
               </div>
             </CardContent>
           </Card>

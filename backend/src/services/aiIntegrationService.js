@@ -2,6 +2,7 @@ const ResumeAnalysis = require('../models/ResumeAnalysis');
 const InterviewSession = require('../models/InterviewSession');
 const Resume = require('../models/Resume');
 const Application = require('../models/Application');
+const Job = require('../models/Job');
 const ApiError = require('../utils/ApiError');
 
 /**
@@ -46,10 +47,16 @@ async function saveResumeMatchResult(payload) {
   }
 
   let applicationId = payload.applicationId || null;
+  let applicationDoc = null;
   if (applicationId) {
-    const application = await Application.findById(applicationId);
-    if (!application) {
+    applicationDoc = await Application.findById(applicationId);
+    if (!applicationDoc) {
       throw ApiError.notFound('Application not found');
+    }
+  } else {
+    applicationDoc = await Application.findOne({ candidate: resume.candidate, job: payload.jobId });
+    if (applicationDoc) {
+      applicationId = applicationDoc._id;
     }
   }
 
@@ -73,6 +80,15 @@ async function saveResumeMatchResult(payload) {
     },
     { upsert: true, new: true, setDefaultsOnInsert: true }
   );
+
+  // If match score >= 80%, auto-assign assessment for the application
+  if (analysis.matchScore !== null && analysis.matchScore >= 80 && applicationDoc) {
+    const { autoAssignAssessment } = require('./applicationWorkflowService');
+    const jobDoc = await Job.findById(payload.jobId);
+    if (jobDoc) {
+      await autoAssignAssessment(applicationDoc, jobDoc);
+    }
+  }
 
   return analysis;
 }

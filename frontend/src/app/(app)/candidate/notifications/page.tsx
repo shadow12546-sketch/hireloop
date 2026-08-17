@@ -13,8 +13,11 @@ export default function CandidateNotifications() {
   useEffect(() => {
     async function load() {
       try {
-        const data = await notificationService.getNotifications()
-        setNotifications(data)
+        const res: any = await notificationService.getNotifications()
+        const notifList = Array.isArray(res) ? res : res?.data?.notifications || res?.notifications || res?.data || []
+        setNotifications(Array.isArray(notifList) ? notifList : [])
+      } catch {
+        setNotifications([])
       } finally {
         setLoading(false)
       }
@@ -22,12 +25,14 @@ export default function CandidateNotifications() {
     load()
   }, [])
 
+  const notifsArray = Array.isArray(notifications) ? notifications : []
+
   const markAllAsRead = () => {
-    setNotifications(notifications.map(n => ({ ...n, read: true })))
+    setNotifications(notifsArray.map(n => ({ ...n, read: true })))
   }
 
   const markAsRead = (id: string) => {
-    setNotifications(notifications.map(n => n.id === id ? { ...n, read: true } : n))
+    setNotifications(notifsArray.map(n => n.id === id || n._id === id ? { ...n, read: true } : n))
   }
 
   const getIcon = (type: string) => {
@@ -55,14 +60,14 @@ export default function CandidateNotifications() {
           <p className="text-muted-foreground mt-1">Stay updated on your applications and interviews.</p>
         </div>
         
-        {notifications.some(n => !n.read) && (
+        {notifsArray.some(n => !n.read) && (
           <Button variant="outline" size="sm" onClick={markAllAsRead} className="gap-2">
             <CheckCircle2 className="w-4 h-4" /> Mark all as read
           </Button>
         )}
       </div>
 
-      {notifications.length === 0 ? (
+      {notifsArray.length === 0 ? (
         <Card className="border-dashed bg-muted/10">
           <CardContent className="p-12 flex flex-col items-center text-center">
             <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">

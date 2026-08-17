@@ -1,5 +1,6 @@
 "use client"
 import { analyticsService } from "@/services/analyticsService"
+import { applicationService } from "@/services/applicationService"
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
@@ -46,17 +47,44 @@ export default function RecruiterDashboard() {
   useEffect(() => {
     async function load() {
       try {
-        const fullData = await analyticsService.getAnalytics()
+        const [fullData, apps] = await Promise.all([
+          analyticsService.getAnalytics().catch(() => null),
+          applicationService.getEmployerApplications().catch(() => [])
+        ])
+
+        const totalApplications = Array.isArray(apps) ? apps.length : 0
+        const recentActivities = Array.isArray(apps) && apps.length > 0
+          ? apps.slice(0, 5).map((app: any, idx: number) => ({
+              id: app._id || app.id || idx,
+              type: "application",
+              text: `${app.candidateName || "Candidate"} applied for ${app.jobTitle || "Job Position"}`,
+              time: app.appliedDate ? new Date(app.appliedDate).toLocaleDateString() : "Recently",
+            }))
+          : [
+              { id: 1, type: "application", text: "No candidate applications received yet.", time: "Just now" },
+            ]
+
         setData({
-          ...fullData.kpis,
-          funnel: fullData.funnel,
-          trend: fullData.monthlyTrend,
-          recentActivity: [
-            { id: 1, type: "application", text: "New application received for Senior React Developer", time: "2 hours ago" },
-            { id: 2, type: "interview",   text: "AI interview completed with John Doe",               time: "4 hours ago" },
-            { id: 3, type: "offer",       text: "Offer accepted by Jane Smith",                       time: "1 day ago" },
-            { id: 4, type: "shortlist",   text: "Alice shortlisted for Backend Engineer",             time: "2 days ago" },
-          ]
+          activeJobs: fullData?.kpis?.activeJobs ?? 0,
+          activeCandidates: totalApplications || fullData?.kpis?.activeCandidates || 0,
+          todaysInterviews: fullData?.kpis?.todaysInterviews ?? 0,
+          pendingReviews: fullData?.kpis?.pendingReviews ?? 0,
+          offerAcceptance: "0%",
+          funnel: fullData?.funnel ?? [],
+          trend: fullData?.monthlyTrend ?? [],
+          recentActivity: recentActivities
+        })
+      } catch (error) {
+        console.error("Failed to load recruiter analytics", error)
+        setData({
+          activeJobs: 0,
+          activeCandidates: 0,
+          todaysInterviews: 0,
+          pendingReviews: 0,
+          offerAcceptance: "0%",
+          funnel: [],
+          trend: [],
+          recentActivity: []
         })
       } finally {
         setLoading(false)
@@ -64,10 +92,6 @@ export default function RecruiterDashboard() {
     }
     load()
   }, [])
-
-  if (!loading && !data) {
-    throw new Error("Failed to load dashboard data.")
-  }
 
   const kpis = [
     { label: "Total Active Jobs",  value: data?.activeJobs,       icon: Briefcase, color: "text-blue-500",   bg: "bg-blue-500/10",   trend: "+12%", trendDir: "up" },

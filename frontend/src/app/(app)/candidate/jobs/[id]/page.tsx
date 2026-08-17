@@ -16,8 +16,11 @@ export default function JobDetails({ params }: { params: Promise<{ id: string }>
   useEffect(() => {
     async function load() {
       try {
-        const data = await jobService.getJobById(resolvedParams.id)
-        setJob(data)
+        const res: any = await jobService.getJobById(resolvedParams.id)
+        const jobObj = res?.data?.job || res?.job || res?.data || res
+        setJob(jobObj)
+      } catch {
+        setJob(null)
       } finally {
         setLoading(false)
       }
@@ -44,6 +47,17 @@ export default function JobDetails({ params }: { params: Promise<{ id: string }>
     )
   }
 
+  const jobId = job._id || job.id || resolvedParams.id
+  const companyName = typeof job.company === 'object' ? job.company?.name || 'Company' : job.company || 'Company'
+  const jobTitle = job.title || 'Untitled Job'
+  const locationStr = job.location || 'Remote'
+  const typeStr = job.employmentType || job.type || 'Full-time'
+  const expStr = job.experienceLevel || job.experience || 'Mid Level'
+  const salaryStr = job.salary || 'Competitive'
+  const postedStr = job.createdAt ? new Date(job.createdAt).toLocaleDateString() : job.posted || 'Recently'
+  const requirementsList = Array.isArray(job.requirements) ? job.requirements : []
+  const skillsList = Array.isArray(job.skills) ? job.skills : []
+
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500 pb-12">
       <Link href="/candidate/jobs" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors mb-4">
@@ -54,21 +68,21 @@ export default function JobDetails({ params }: { params: Promise<{ id: string }>
         <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -z-10 translate-x-1/2 -translate-y-1/2" />
         
         <div>
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-2">{job.title}</h1>
+          <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-2">{jobTitle}</h1>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-muted-foreground">
             <span className="flex items-center text-foreground font-medium">
-              <Building2 className="w-4 h-4 mr-2" /> {job.company}
+              <Building2 className="w-4 h-4 mr-2" /> {companyName}
             </span>
             <span className="flex items-center">
-              <MapPin className="w-4 h-4 mr-1" /> {job.location}
+              <MapPin className="w-4 h-4 mr-1" /> {locationStr}
             </span>
             <span className="flex items-center">
-              <Clock className="w-4 h-4 mr-1" /> {job.posted}
+              <Clock className="w-4 h-4 mr-1" /> {postedStr}
             </span>
           </div>
         </div>
 
-        <Button size="lg" className="shrink-0 gap-2" render={<Link href={`/candidate/jobs/${job.id}/apply`} />}>
+        <Button size="lg" className="shrink-0 gap-2" render={<Link href={`/candidate/jobs/${jobId}/apply`} />}>
           Apply Now <Send className="w-4 h-4" />
         </Button>
       </div>
@@ -78,21 +92,23 @@ export default function JobDetails({ params }: { params: Promise<{ id: string }>
           <section>
             <h3 className="text-xl font-bold mb-4">Job Description</h3>
             <p className="text-muted-foreground leading-relaxed">
-              {job.description}
+              {job.description || "No description provided."}
             </p>
           </section>
 
-          <section>
-            <h3 className="text-xl font-bold mb-4">Requirements</h3>
-            <ul className="space-y-2">
-              {job.requirements.map((req: string, i: number) => (
-                <li key={i} className="flex items-start gap-2 text-muted-foreground">
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary mt-2 shrink-0" />
-                  {req}
-                </li>
-              ))}
-            </ul>
-          </section>
+          {requirementsList.length > 0 && (
+            <section>
+              <h3 className="text-xl font-bold mb-4">Requirements</h3>
+              <ul className="space-y-2">
+                {requirementsList.map((req: string, i: number) => (
+                  <li key={i} className="flex items-start gap-2 text-muted-foreground">
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary mt-2 shrink-0" />
+                    {req}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
         </div>
 
         <div className="space-y-6">
@@ -106,7 +122,7 @@ export default function JobDetails({ params }: { params: Promise<{ id: string }>
                 </div>
                 <div>
                   <p className="text-sm font-medium">Salary</p>
-                  <p className="text-sm text-muted-foreground">{job.salary}</p>
+                  <p className="text-sm text-muted-foreground">{salaryStr}</p>
                 </div>
               </div>
 
@@ -116,7 +132,7 @@ export default function JobDetails({ params }: { params: Promise<{ id: string }>
                 </div>
                 <div>
                   <p className="text-sm font-medium">Experience</p>
-                  <p className="text-sm text-muted-foreground">{job.experience}</p>
+                  <p className="text-sm text-muted-foreground">{expStr}</p>
                 </div>
               </div>
 

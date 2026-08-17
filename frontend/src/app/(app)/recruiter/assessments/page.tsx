@@ -28,7 +28,7 @@ export default function RecruiterAssessments() {
   useEffect(() => {
     async function load() {
       try {
-        const data = await assessmentService.getAssessments()
+        const data = await assessmentService.getEmployerAssessments()
         setAssessments(data)
       } finally {
         setLoading(false)

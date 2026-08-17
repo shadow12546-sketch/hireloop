@@ -16,8 +16,11 @@ export default function CandidateApplications() {
   useEffect(() => {
     async function load() {
       try {
-        const data = await applicationService.getApplications()
-        setApps(data)
+        const res: any = await applicationService.getApplications()
+        const appsList = Array.isArray(res) ? res : res?.data?.applications || res?.applications || res?.data || []
+        setApps(Array.isArray(appsList) ? appsList : [])
+      } catch {
+        setApps([])
       } finally {
         setLoading(false)
       }
@@ -33,6 +36,8 @@ export default function CandidateApplications() {
     )
   }
 
+  const appsArray = Array.isArray(apps) ? apps : []
+
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500 pb-12">
       <div>
@@ -40,7 +45,7 @@ export default function CandidateApplications() {
         <p className="text-muted-foreground mt-1">Track the status of jobs you've applied for.</p>
       </div>
 
-      {apps.length === 0 ? (
+      {appsArray.length === 0 ? (
         <div className="text-center py-20 border rounded-2xl bg-card">
           <Briefcase className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
           <h3 className="text-lg font-medium">No applications yet</h3>
@@ -49,50 +54,54 @@ export default function CandidateApplications() {
         </div>
       ) : (
         <div className="space-y-4">
-          {apps.map(app => (
-            <Card key={app.id} className="overflow-hidden hover:border-primary/50 transition-colors group">
-              <CardContent className="p-0">
-                <div className="p-6">
-                  <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-                    <div className="flex items-start gap-4">
-                      <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-black text-xl shrink-0">
-                        {app.company.charAt(0)}
-                      </div>
-                      <div>
-                        <h3 className="text-xl font-bold mb-1">{app.jobTitle}</h3>
-                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
-                          <span className="flex items-center text-foreground font-medium">
-                            <Building2 className="w-4 h-4 mr-1" /> {app.company}
-                          </span>
-                          <span className="flex items-center">
-                            <Calendar className="w-4 h-4 mr-1" /> Applied {new Date(app.appliedDate).toLocaleDateString()}
-                          </span>
+          {appsArray.map((app, index) => {
+            const companyName = typeof app.job?.company === 'object' ? app.job.company.name : app.company?.name || app.company || 'Company'
+            const jobTitle = app.job?.title || app.jobTitle || 'Job Role'
+            const appliedDateStr = app.appliedAt || app.appliedDate ? new Date(app.appliedAt || app.appliedDate).toLocaleDateString() : 'Recently'
+            const appId = app._id || app.id || index
+
+            return (
+              <Card key={appId} className="overflow-hidden hover:border-primary/50 transition-colors group">
+                <CardContent className="p-0">
+                  <div className="p-6">
+                    <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                      <div className="flex items-start gap-4">
+                        <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-black text-xl shrink-0">
+                          {companyName.charAt(0)}
+                        </div>
+                        <div>
+                          <h3 className="text-xl font-bold mb-1">{jobTitle}</h3>
+                          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
+                            <span className="flex items-center text-foreground font-medium">
+                              <Building2 className="w-4 h-4 mr-1" /> {companyName}
+                            </span>
+                            <span className="flex items-center">
+                              <Calendar className="w-4 h-4 mr-1" /> Applied {appliedDateStr}
+                            </span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-4">
-                      <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 text-sm py-1">
-                        Status: {app.status}
-                      </Badge>
-                      <Button variant="ghost" size="icon" className="group-hover:translate-x-1 transition-transform" render={<Link href={`/candidate/applications/${app.id}`} />}>
-                        <ChevronRight className="w-5 h-5" />
-                      </Button>
+                      
+                      <div className="flex items-center gap-4">
+                        <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 text-sm py-1">
+                          Status: {app.status || 'APPLIED'}
+                        </Badge>
+                        <Button variant="ghost" size="icon" className="group-hover:translate-x-1 transition-transform" render={<Link href={`/candidate/applications/${appId}`} />}>
+                          <ChevronRight className="w-5 h-5" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
-
-                  <div className="mt-8 mb-2">
-                    <ApplicationTimeline stages={app.stages} currentStageIndex={app.currentStage} />
+                  <div className="bg-muted/30 border-t p-4 px-6">
+                    <ApplicationTimeline 
+                      stages={['Applied', 'Screening', 'Shortlisted', 'Interview', 'Offer']} 
+                      currentStageIndex={['APPLIED', 'SCREENING', 'SHORTLISTED', 'AI_INTERVIEW', 'OFFER', 'HIRED'].indexOf((app.status || 'APPLIED').toUpperCase()) !== -1 ? ['APPLIED', 'SCREENING', 'SHORTLISTED', 'AI_INTERVIEW', 'OFFER', 'HIRED'].indexOf((app.status || 'APPLIED').toUpperCase()) : 0} 
+                    />
                   </div>
-                </div>
-                <div className="bg-muted/30 px-6 py-3 border-t flex justify-end">
-                  <Button variant="link" className="p-0 h-auto font-medium" render={<Link href={`/candidate/applications/${app.id}`} />}>
-                    View Details & AI Analysis
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            )
+          })}
         </div>
       )}
     </div>
